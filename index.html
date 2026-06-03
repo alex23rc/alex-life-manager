@@ -6,7 +6,6 @@
 <title>Alex Life Manager</title>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -33,15 +32,15 @@ input,textarea,select,button{font-family:inherit;}
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel">
+<script type="text/javascript">
 const {useState,useEffect}=React;
-const fbSave=(k,v)=>window._fbSave?window._fbSave(k,v):Promise.resolve();
-const fbLoad=(k,def)=>window._fbLoad?window._fbLoad(k,def):Promise.resolve(def);
+function fbSave(k,v){return window._fbSave?window._fbSave(k,v):Promise.resolve();}
+function fbLoad(k,def){return window._fbLoad?window._fbLoad(k,def):Promise.resolve(def);}
 
 const colMap={red:"#e53e3e",green:"#38a169",gold:"#d69e2e",blue:"#3182ce",gray:"#718096"};
 const colLabels={red:"Rosso",green:"Verde",gold:"Oro",blue:"Blu",gray:"Grigio"};
-const mkId=()=>Math.random().toString(36).slice(2,9);
-const newObj=(name,color)=>({id:mkId(),name,color,progress:0,cosa:"",perche:"",tasks:[],notes:""});
+function mkId(){return Math.random().toString(36).slice(2,9);}
+function newObj(name,color){return {id:mkId(),name:name,color:color,progress:0,cosa:"",perche:"",tasks:[],notes:""};}
 
 const DAYS_IT=["Domenica","Lunedi","Martedi","Mercoledi","Giovedi","Venerdi","Sabato"];
 const MONTHS_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
