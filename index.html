@@ -48,7 +48,7 @@ const MONTHS_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio
 const ALL_TABS=[
   {k:"todo",l:"To Do"},{k:"obiettivi",l:"Top 10"},{k:"goals",l:"Obiettivi"},
   {k:"personale",l:"Personale"},{k:"lavorativa",l:"Lavoro"},{k:"artistica",l:"Arte"},
-  {k:"calendar",l:"Calendario"},{k:"finanza",l:"Finanza"},{k:"frasi",l:"Frasi"},{k:"dashboard",l:"Dashboard"},
+  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"dashboard",l:"Dashboard"},
 ];
 
 const THEMES={
@@ -83,7 +83,7 @@ const INIT_SETTINGS={
     lavorativa:{visible:true,home:false,label:"Lavoro",headerTheme:null,bodyTheme:null},
     artistica:{visible:true,home:false,label:"Arte",headerTheme:null,bodyTheme:null},
     calendar:{visible:true,home:false,label:"Calendario",headerTheme:null,bodyTheme:null},
-    frasi:{visible:true,home:false,label:"Frasi",headerTheme:null,bodyTheme:null},finanza:{visible:true,home:false,label:"Finanza",headerTheme:null,bodyTheme:null},
+    frasi:{visible:true,home:false,label:"Frasi",headerTheme:null,bodyTheme:null},
     dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
   },
   theme:"light",userName:"Alex",weekStart:"monday",
@@ -354,61 +354,11 @@ function TodoSection(props){
     noteTarget&&noteItem&&React.createElement(NoteModal,{title:"Nota",notes:noteItem.notes||"",onSave:function(note){saveNote(noteTarget,note);},onClose:function(){setNoteTarget(null);}}));
 }
 
-function FinanzaSection(){
-  var _s=useState([]);var voci=_s[0];var setVoci=_s[1];
-  var _s2=useState({desc:"",importo:"",tipo:"uscita",data:todayStr(),cat:""});var form=_s2[0];var setForm=_s2[1];
-  var _s3=useState(false);var showAdd=_s3[0];var setShowAdd=_s3[1];
-  useEffect(function(){fbLoad("alm_finanza",[]).then(function(v){setVoci(v);});},[]);
-  useEffect(function(){if(!window._offlineMode)fbSave("alm_finanza",voci);},[voci]);
-  function hf(k,v){setForm(function(f){var n=Object.assign({},f);n[k]=v;return n;});}
-  function save(){if(!form.desc.trim()||!form.importo)return;setVoci(function(vs){return vs.concat([Object.assign({},form,{id:mkId(),importo:parseFloat(form.importo)})]);});setForm({desc:"",importo:"",tipo:"uscita",data:todayStr(),cat:""});setShowAdd(false);}
-  var entrate=voci.filter(function(v){return v.tipo==="entrata";}).reduce(function(s,v){return s+v.importo;},0);
-  var uscite=voci.filter(function(v){return v.tipo==="uscita";}).reduce(function(s,v){return s+v.importo;},0);
-  var saldo=entrate-uscite;
-  var sorted=voci.slice().sort(function(a,b){return b.data.localeCompare(a.data);});
-  return React.createElement("div",{style:{maxWidth:800,margin:"0 auto",padding:"24px 20px"}},
-    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
-      React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Finanza"),
-      React.createElement("button",{onClick:function(){setShowAdd(function(v){return !v;});},style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontWeight:700}},"+ Aggiungi")),
-    React.createElement("div",{style:{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}},
-      React.createElement("div",{style:{flex:1,minWidth:130,background:"#f0fff4",borderRadius:12,padding:"14px 18px",border:"1px solid #9ae6b4"}},
-        React.createElement("div",{style:{fontSize:12,color:"#276749",fontWeight:700,marginBottom:4}},"ENTRATE"),
-        React.createElement("div",{style:{fontSize:20,fontWeight:800,color:"#276749"}},"+"+entrate.toFixed(2)+" EUR")),
-      React.createElement("div",{style:{flex:1,minWidth:130,background:"#fff5f5",borderRadius:12,padding:"14px 18px",border:"1px solid #feb2b2"}},
-        React.createElement("div",{style:{fontSize:12,color:"#c53030",fontWeight:700,marginBottom:4}},"USCITE"),
-        React.createElement("div",{style:{fontSize:20,fontWeight:800,color:"#c53030"}},"-"+uscite.toFixed(2)+" EUR")),
-      React.createElement("div",{style:{flex:1,minWidth:130,background:saldo>=0?"#ebf8ff":"#fff5f5",borderRadius:12,padding:"14px 18px",border:"1px solid "+(saldo>=0?"#90cdf4":"#feb2b2")}},
-        React.createElement("div",{style:{fontSize:12,color:saldo>=0?"#2b6cb0":"#c53030",fontWeight:700,marginBottom:4}},"SALDO"),
-        React.createElement("div",{style:{fontSize:20,fontWeight:800,color:saldo>=0?"#2b6cb0":"#c53030"}},(saldo>=0?"+":"-")+Math.abs(saldo).toFixed(2)+" EUR"))),
-    showAdd&&React.createElement("div",{style:{background:"#fff",borderRadius:12,padding:20,border:"1px solid #e2e8f0",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",marginBottom:20}},
-      React.createElement("h3",{style:{margin:"0 0 14px",fontSize:15,fontWeight:700}},"Nuova voce"),
-      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}},
-        React.createElement("input",{placeholder:"Descrizione",value:form.desc,onChange:function(e){hf("desc",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14}}),
-        React.createElement("input",{type:"number",placeholder:"Importo",value:form.importo,onChange:function(e){hf("importo",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14}}),
-        React.createElement("select",{value:form.tipo,onChange:function(e){hf("tipo",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,background:"#fff"}},React.createElement("option",{value:"uscita"},"Uscita"),React.createElement("option",{value:"entrata"},"Entrata")),
-        React.createElement("input",{type:"date",value:form.data,onChange:function(e){hf("data",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14}}),
-        React.createElement("input",{placeholder:"Categoria (Casa, Cibo...)",value:form.cat,onChange:function(e){hf("cat",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,gridColumn:"1/-1"}})),
-      React.createElement("div",{style:{display:"flex",gap:8}},
-        React.createElement("button",{onClick:save,style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"8px 20px",cursor:"pointer",fontWeight:700}},"Salva"),
-        React.createElement("button",{onClick:function(){setShowAdd(false);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer"}},"Annulla"))),
-    sorted.length===0&&!showAdd&&React.createElement("div",{style:{textAlign:"center",padding:40,color:"#a0aec0"}},"Nessuna voce. Premi + Aggiungi per iniziare."),
-    sorted.map(function(v){return React.createElement("div",{key:v.id,style:{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:8,border:"1px solid #e2e8f0"}},
-      React.createElement("div",{style:{width:10,height:10,borderRadius:"50%",background:v.tipo==="entrata"?"#38a169":"#e53e3e",flexShrink:0}}),
-      React.createElement("div",{style:{flex:1}},
-        React.createElement("div",{style:{fontWeight:700,fontSize:14,color:"#2d3748"}},v.desc),
-        React.createElement("div",{style:{fontSize:12,color:"#718096"}},v.data+(v.cat?" - "+v.cat:""))),
-      React.createElement("div",{style:{fontWeight:800,fontSize:15,color:v.tipo==="entrata"?"#38a169":"#e53e3e"}},(v.tipo==="entrata"?"+":"-")+v.importo.toFixed(2)+" EUR"),
-      React.createElement("button",{onClick:function(){setVoci(function(vs){return vs.filter(function(x){return x.id!==v.id;});});},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:16,padding:"0 4px"}},"x"));})
-  );
-}
-
 function FrasiSection(props){
   var phrases=props.phrases;var setPhrases=props.setPhrases;
   var _s=useState("");var newP=_s[0];var setNewP=_s[1];
   var _s2=useState(null);var editIdx=_s2[0];var setEditIdx=_s2[1];
   var _s3=useState("");var editVal=_s3[0];var setEditVal=_s3[1];
-  var _s4=useState(false);var showImport=_s4[0];var setShowImport=_s4[1];
-  var _s5=useState("");var importText=_s5[0];var setImportText=_s5[1];
   var today=getPhraseForToday(phrases);
   function add(){if(!newP.trim())return;setPhrases(function(p){return p.concat([newP.trim()]);});setNewP("");}
   function remove(i){setPhrases(function(p){return p.filter(function(_,j){return j!==i;});});}
@@ -417,31 +367,10 @@ function FrasiSection(props){
     React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:6}},"Frasi del Giorno"),
     React.createElement("p",{style:{color:"#718096",marginBottom:16,fontSize:14}},"Una frase diversa ogni giorno, sempre la stessa per tutto il giorno."),
     today&&React.createElement("div",{style:{background:"linear-gradient(135deg,#667eea,#764ba2)",color:"#fff",borderRadius:12,padding:16,marginBottom:20,fontSize:15,fontStyle:"italic",lineHeight:1.6}},"Frase di oggi: \""+today+"\""),
-    React.createElement("div",{style:{display:"flex",gap:8,marginBottom:8}},
-      React.createElement("input",{value:newP,onChange:function(e){setNewP(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")add();},placeholder:"Nuova frase motivazionale...",style:{flex:1,border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 14px",fontSize:14}}),
-      React.createElement("button",{onClick:add,style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:700,fontSize:18}},"+")),
     React.createElement("div",{style:{display:"flex",gap:8,marginBottom:20}},
-      React.createElement("button",{onClick:function(){setShowImport(true);},style:{background:"#667eea",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontWeight:700,fontSize:13}},"\u2B07 Importa lista frasi"),
-      React.createElement("button",{onClick:function(){if(window.confirm("Sei sicuro di voler eliminare TUTTE le frasi?"))if(window.confirm("ATTENZIONE: questa azione e irreversibile. Confermi di voler eliminare tutte le "+phrases.length+" frasi?"))setPhrases([]);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontWeight:700,fontSize:13}},"\uD83D\uDDD1 Elimina tutte")),
-    showImport&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
-      React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:28,maxWidth:500,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)",maxHeight:"80vh",overflowY:"auto"}},
-        React.createElement("h3",{style:{margin:"0 0 8px",fontSize:17,color:"#2d3748"}},"Importa frasi motivazionali"),
-        React.createElement("p",{style:{fontSize:13,color:"#718096",marginBottom:12}},"Incolla le frasi (una per riga). Verranno aggiunte a quelle esistenti."),
-        React.createElement("textarea",{rows:10,value:importText,onChange:function(e){setImportText(e.target.value);},placeholder:"Prima frase...\nSeconda frase...\nTerza frase...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:13,resize:"vertical",boxSizing:"border-box",marginBottom:12}}),
-        React.createElement("div",{style:{marginBottom:12}},
-          React.createElement("button",{onClick:function(){setImportText(INIT_PHRASES.join("\n"));},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:600,color:"#4a5568"}},"Carica lista predefinita ("+INIT_PHRASES.length+" frasi)")),
-        React.createElement("div",{style:{display:"flex",gap:8}},
-          React.createElement("button",{onClick:function(){
-            var lines=importText.split("\n").map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-            if(!lines.length)return;
-            setPhrases(function(p){var existing=new Set(p);return p.concat(lines.filter(function(l){return !existing.has(l);}));});
-            setImportText("");setShowImport(false);
-          },style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:700}},"Importa"),
-          React.createElement("button",{onClick:function(){if(!window.confirm("ATTENZIONE: sostituirai tutte le frasi esistenti. Sei sicuro?"))return;setPhrases(function(){
-            var lines=importText.split("\n").map(function(l){return l.trim();}).filter(Boolean);
-            return lines;
-          });setImportText("");setShowImport(false);},style:{background:"#e53e3e",color:"#fff",border:"none",borderRadius:8,padding:"10px 16px",cursor:"pointer",fontWeight:700}},"Sostituisci tutto"),
-          React.createElement("button",{onClick:function(){setShowImport(false);setImportText("");},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px 14px",cursor:"pointer"}},"Annulla")))),
+      React.createElement("input",{value:newP,onChange:function(e){setNewP(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")add();},placeholder:"Nuova frase motivazionale...",style:{flex:1,border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 14px",fontSize:14}}),
+      React.createElement("button",{onClick:add,style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:700,fontSize:18}},"+")
+    ),
     React.createElement("div",{style:{fontSize:13,color:"#718096",marginBottom:12}},phrases.length+" frasi disponibili"),
     phrases.map(function(p,i){
       return React.createElement("div",{key:i,style:{display:"flex",alignItems:"center",gap:10,marginBottom:10,background:"#fff",borderRadius:10,padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",border:today===p?"2px solid #667eea":"1px solid #e2e8f0"}},
@@ -451,7 +380,8 @@ function FrasiSection(props){
               React.createElement("input",{autoFocus:true,value:editVal,onChange:function(e){setEditVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")saveEdit(i);if(e.key==="Escape")setEditIdx(null);},style:{flex:1,border:"2px solid #667eea",borderRadius:8,padding:"5px 8px",fontSize:14}}),
               React.createElement("button",{onClick:function(){saveEdit(i);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}},"OK"))
           :React.createElement("span",{onClick:function(){setEditIdx(i);setEditVal(p);},style:{flex:1,fontSize:14,color:"#2d3748",cursor:"pointer",fontStyle:"italic"}},p),
-        React.createElement("button",{onClick:function(){remove(i);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",cursor:"pointer",fontSize:13,fontWeight:700,borderRadius:8,padding:"3px 10px",flexShrink:0}},"x"));}));
+        React.createElement("button",{onClick:function(){remove(i);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",cursor:"pointer",fontSize:13,fontWeight:700,borderRadius:8,padding:"3px 10px",flexShrink:0}},"x"));
+    }));
 }
 
 function CalendarSection(props){
@@ -787,7 +717,7 @@ function SettingsPanel(props){
   var _s=useState("main");var sub=_s[0];var setSub=_s[1];
   var _s2=useState(false);var confirmReset=_s2[0];var setConfirmReset=_s2[1];
   var _s3=useState(null);var pendingTheme=_s3[0];var setPendingTheme=_s3[1];
-  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","finanza","frasi","dashboard"];
+  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","dashboard"];
   function handleGlobalTheme(theme){var has=Object.values(settings.tabs).some(function(t){return t.headerTheme||t.bodyTheme;});if(has){setPendingTheme(theme);setConfirmReset(true);}else setSettings(function(s){return Object.assign({},s,{theme:theme});});}
   function confirmResetFn(){var tabs={};Object.keys(settings.tabs).forEach(function(k){tabs[k]=Object.assign({},settings.tabs[k],{headerTheme:null,bodyTheme:null});});setSettings(function(s){return Object.assign({},s,{theme:pendingTheme,tabs:tabs});});setConfirmReset(false);setPendingTheme(null);}
   function keepFn(){setSettings(function(s){return Object.assign({},s,{theme:pendingTheme});});setConfirmReset(false);setPendingTheme(null);}
@@ -826,7 +756,7 @@ function App(){
   var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
 
   useEffect(function(){
-    function doLoad(){Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{})]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2]))setGoals(res[2]);setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");setLoaded(true);});}
+    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{})]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2]))setGoals(res[2]);setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");setLoaded(true);});}
     if(window._fbReady){doLoad();}else{window.addEventListener("fbReady",doLoad,{once:true});}
   },[]);
 
@@ -882,7 +812,6 @@ function App(){
     area==="lavorativa"?React.createElement(AreaView,{areaKey:"lavorativa",data:data,setData:setData,onAddTodo:function(todo){setTodos(function(t){return t.concat([todo]);});}}):null,
     area==="artistica"?React.createElement(AreaView,{areaKey:"artistica",data:data,setData:setData,onAddTodo:function(todo){setTodos(function(t){return t.concat([todo]);});}}):null,
     area==="calendar"?React.createElement(CalendarSection,{events:events,setEvents:setEvents,onAddTodo:handleAddTodo,birthdayImportExt:birthdayImportApp,setBirthdayImportExt:setBirthdayImportApp}):null,
-    area==="finanza"?React.createElement(FinanzaSection):null,
     area==="frasi"?React.createElement(FrasiSection,{phrases:phrases,setPhrases:setPhrases}):null,
     area==="dashboard"?React.createElement(Dashboard,{data:data}):null,
     showSettings?React.createElement(SettingsPanel,settingsProps):null,
