@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Alex Life Manager</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyDnZhBnWwbKEStATNm_NfQrhbFkRxUrfGk",
+    authDomain: "alex-life-86e31.firebaseapp.com",
+    projectId: "alex-life-86e31",
+    storageBucket: "alex-life-86e31.firebasestorage.app",
+    messagingSenderId: "81473939825",
+    appId: "1:81473939825:web:bec3ba762c49803bdceed0"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._fbSave = async (k,v) => { try { await setDoc(doc(db,"alm",k),{value:JSON.stringify(v)}); } catch(e){ console.error(e); } };
+  window._fbLoad = async (k,def) => { try { const s=await getDoc(doc(db,"alm",k)); return s.exists()?JSON.parse(s.data().value):def; } catch(e){ return def; } };
+  window._fbReady=true; window.dispatchEvent(new Event("fbReady"));
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+input,textarea,select,button{font-family:inherit;}
+::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-track{background:#f1f1f1;} ::-webkit-scrollbar-thumb{background:#cbd5e0;border-radius:3px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect}=React;
+const fbSave=(k,v)=>window._fbSave?window._fbSave(k,v):Promise.resolve();
+const fbLoad=(k,def)=>window._fbLoad?window._fbLoad(k,def):Promise.resolve(def);
+
+const colMap={red:"#e53e3e",green:"#38a169",gold:"#d69e2e",blue:"#3182ce",gray:"#718096"};
+const colLabels={red:"Rosso",green:"Verde",gold:"Oro",blue:"Blu",gray:"Grigio"};
+const mkId=()=>Math.random().toString(36).slice(2,9);
+const newObj=(name,color)=>({id:mkId(),name,color,progress:0,cosa:"",perche:"",tasks:[],notes:""});
+
+const DAYS_IT=["Domenica","Lunedi","Martedi","Mercoledi","Giovedi","Venerdi","Sabato"];
+const MONTHS_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+
+const ALL_TABS=[
+  {k:"todo",l:"To Do"},{k:"obiettivi",l:"Top 10"},{k:"goals",l:"Obiettivi"},
+  {k:"personale",l:"Personale"},{k:"lavorativa",l:"Lavoro"},{k:"artistica",l:"Arte"},
+  {k:"calendar",l:"Calendario"},{k:"finanza",l:"Finanza"},{k:"frasi",l:"Frasi"},{k:"dashboard",l:"Dashboard"},
+];
+
+const THEMES={
+  light:{bg:"#f7fafc",header:"linear-gradient(135deg,#2d3748,#4a5568)"},
+  dark:{bg:"#1a202c",header:"linear-gradient(135deg,#1a202c,#2d3748)"},
+  purple:{bg:"#f5f3ff",header:"linear-gradient(135deg,#553c9a,#764ba2)"},
+  red:{bg:"#fff5f5",header:"linear-gradient(135deg,#c53030,#e53e3e)"},
+  blue:{bg:"#ebf8ff",header:"linear-gradient(135deg,#2b6cb0,#3182ce)"},
+  green:{bg:"#f0fff4",header:"linear-gradient(135deg,#276749,#38a169)"},
+  yellow:{bg:"#fffff0",header:"linear-gradient(135deg,#b7791f,#d69e2e)"},
+  orange:{bg:"#fffaf0",header:"linear-gradient(135deg,#c05621,#ed8936)"},
+};
+const THEME_LABELS=[
+  ["light","Chiaro","#e2e8f0","#2d3748"],["dark","Scuro","#2d3748","#fff"],
+  ["purple","Viola","#553c9a","#fff"],["red","Rosso","#c53030","#fff"],
+  ["blue","Blu","#2b6cb0","#fff"],["green","Verde","#276749","#fff"],
+  ["yellow","Giallo","#d69e2e","#2d3748"],["orange","Arancione","#ed8936","#fff"],
+];
+const PRIO_OPTS=[
+  {v:null,label:"Nessuna",color:"#cbd5e0"},
+  {v:"high",label:"Alta",color:"#e53e3e"},
+  {v:"mid",label:"Media",color:"#d69e2e"},
+  {v:"low",label:"Bassa",color:"#38a169"},
+];
+
+const INIT_SETTINGS={
+  tabs:{
+    todo:{visible:true,home:true,label:"To Do",headerTheme:null,bodyTheme:null},
+    obiettivi:{visible:true,home:false,label:"Top 10",headerTheme:null,bodyTheme:null},
+    goals:{visible:true,home:false,label:"Obiettivi",headerTheme:null,bodyTheme:null},
+    personale:{visible:true,home:false,label:"Personale",headerTheme:null,bodyTheme:null},
+    lavorativa:{visible:true,home:false,label:"Lavoro",headerTheme:null,bodyTheme:null},
+    artistica:{visible:true,home:false,label:"Arte",headerTheme:null,bodyTheme:null},
+    calendar:{visible:true,home:false,label:"Calendario",headerTheme:null,bodyTheme:null},
+    frasi:{visible:true,home:false,label:"Frasi",headerTheme:null,bodyTheme:null},finanza:{visible:true,home:false,label:"Finanza",headerTheme:null,bodyTheme:null},
+    dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
+  },
+  theme:"light",userName:"Alex",weekStart:"monday",
+};
+const INIT_OBJECTIVES=[{"text": "", "notes": ""}, {"text": "", "notes": ""}, {"text": "", "notes": ""}, {"text": "", "notes": ""}, {"text": "", "notes": ""}, {"text": "", "notes": ""}, {"text": "", "notes": ""}, {"text": "", "notes": ""}, {"text": "", "notes": ""}, {"text": "", "notes": ""}];
+const INIT_GOALS={"personale": {"breve": [], "medio": [], "lungo": []}, "lavorativa": {"breve": [{"text": "Chiamare Giorgio Viale DIMSPORT", "notes": "", "prio": null}, {"text": "Cura inserzioni/immagini store", "notes": "", "prio": null}, {"text": "Utilizzo Poptin", "notes": "", "prio": null}, {"text": "Pubblicazione massiva Ebay", "notes": "", "prio": null}, {"text": "Airbox Repartocorse", "notes": "", "prio": null}, {"text": "Accessori carbonio Repartocorse", "notes": "", "prio": null}, {"text": "Utilizzo costante Mailchimp", "notes": "", "prio": null}, {"text": "Lucky Orange", "notes": "", "prio": null}, {"text": "Feed Google", "notes": "", "prio": null}], "medio": [], "lungo": []}, "artistica": {"breve": [], "medio": [], "lungo": []}};
+const INIT_DATA={"personale": [{"id": "p1", "name": "YouTube - Alex Carbonara", "color": "red", "progress": 0, "cosa": "Parlare di argomenti interessanti in prima persona.", "perche": "Mettere a frutto le mie capacita esplicative.", "tasks": [{"t": "Lista tipologie", "done": false}, {"t": "Evernote spunti social", "done": false}], "notes": ""}, {"id": "p2", "name": "Forma Fisica", "color": "green", "progress": 55, "cosa": "Allenamento costante, alimentazione attenta.", "perche": "Devo essere, e apparire, in forma.", "tasks": [{"t": "Routine 2 volte in palestra", "done": false}, {"t": "Cucinare uova", "done": false}], "notes": ""}, {"id": "p3", "name": "Salute", "color": "gray", "progress": 25, "cosa": "Fare controlli relativi alla salute.", "perche": "Senza la salute tutto il resto non esiste.", "tasks": [{"t": "Visita oculistica", "done": false}, {"t": "Vaccino Papilloma", "done": false}], "notes": ""}, {"id": "p4", "name": "Aspetto Esteriore", "color": "green", "progress": 45, "cosa": "Vestirmi bene, curare la mia persona.", "perche": "Devo essere figo e lasciare trasparire che ho cura per me.", "tasks": [{"t": "Camicie", "done": false}, {"t": "Giacca", "done": false}], "notes": ""}, {"id": "p5", "name": "Casa Pulita e in Ordine", "color": "blue", "progress": 25, "cosa": "Persona per pulizie settimanali.", "perche": "Vivere nella pulizia ha benefici importanti.", "tasks": [{"t": "Persona x pulizie settimana", "done": false}], "notes": ""}, {"id": "p6", "name": "Amici", "color": "blue", "progress": 5, "cosa": "Curare i rapporti con le persone che mi piacciono.", "perche": "Il tempo corre troppo velocemente senza la condivisione.", "tasks": [{"t": "Lista persone", "done": false}], "notes": ""}, {"id": "p7", "name": "Famiglia", "color": "blue", "progress": 10, "cosa": "Cura di mia madre, mia sorella e i miei nipoti.", "perche": "La famiglia e una risorsa importante.", "tasks": [{"t": "Routine 1 Sara", "done": false}], "notes": ""}, {"id": "p8", "name": "Relazioni Sentimentali", "color": "gold", "progress": 25, "cosa": "Non chiudere le porte a una compagna di vita.", "perche": "Aver amato e costruito qualcosa fa molta differenza.", "tasks": [{"t": "Sistemare casa", "done": false}], "notes": ""}, {"id": "p9", "name": "Tempo Libero - Viaggi", "color": "gold", "progress": 30, "cosa": "Concedermi pause, premi, riposo concreto.", "perche": "Se spingo sempre sull acceleratore, finisce male.", "tasks": [{"t": "Pianificare un viaggio", "done": false}], "notes": ""}, {"id": "p10", "name": "Auto - Moto", "color": "gold", "progress": 20, "cosa": "Avere auto e moto che amo e curare i mezzi.", "perche": "Amo le auto e amo le moto.", "tasks": [{"t": "E92", "done": false}, {"t": "Panamera", "done": false}], "notes": ""}, {"id": "p11", "name": "Formazione - Studio", "color": "gray", "progress": 10, "cosa": "Approcciarmi a tutto con umilta e voglia di imparare.", "perche": "Nulla sarebbe stato possibile senza lo studio.", "tasks": [{"t": "Leggere 1 libro per volta", "done": false}], "notes": ""}, {"id": "p12", "name": "Aspetto Interiore", "color": "gray", "progress": 15, "cosa": "Rispettare me stesso, avere cura del mio stato mentale.", "perche": "Se crollo a livello mentale, finisce tutto.", "tasks": [{"t": "Iniziare a restituire qualcosa", "done": false}], "notes": ""}], "lavorativa": [{"id": "l1", "name": "YouTube - Repartocorse", "color": "red", "progress": 20, "cosa": "Generare entrate automatiche per RC.", "perche": "Fama per Repartocorse, nuove richieste e vendite.", "tasks": [{"t": "Lista tipologie", "done": false}], "notes": ""}, {"id": "l2", "name": "Cash Flow RC", "color": "green", "progress": 15, "cosa": "Utilizzare sistemi di gestione avanzati.", "perche": "Generare entrate per la crescita dell azienda.", "tasks": [{"t": "Aumentare prezzi", "done": false}], "notes": ""}, {"id": "l3", "name": "Serenita Ambiente e Lavoro RC", "color": "blue", "progress": 70, "cosa": "Definire ruoli, rispetto reciproco.", "perche": "L azienda deve avere un fine sociale.", "tasks": [{"t": "Chiarire ruoli e mansioni", "done": false}], "notes": ""}, {"id": "l4", "name": "Sviluppo RC", "color": "gold", "progress": 20, "cosa": "Non mollare mai, dare il massimo.", "perche": "Repartocorse ispira i giovani.", "tasks": [{"t": "Nuova piattaforma", "done": false}], "notes": ""}, {"id": "l5", "name": "Formazione Imprenditoriale", "color": "gray", "progress": 15, "cosa": "Studiare, essere curiosi, non adagiarsi.", "perche": "Il miglioramento continuo e l unica strada.", "tasks": [{"t": "Routine 1-2 video settimana", "done": false}], "notes": ""}], "artistica": [{"id": "a1", "name": "YouTube - Ahlex Music", "color": "red", "progress": 0, "cosa": "Video come musicista, compositore, DJ.", "perche": "Fama come artista, ingaggi come DJ.", "tasks": [{"t": "Creare profilo Ahlex su Youtube", "done": false}], "notes": ""}, {"id": "a2", "name": "DJ", "color": "green", "progress": 15, "cosa": "Arricchire la selezione, curare la tecnica.", "perche": "Amo fare il DJ e scoprire nuovi brani.", "tasks": [{"t": "Lista locali", "done": false}], "notes": ""}, {"id": "a3", "name": "Pubblicazione Brani", "color": "gold", "progress": 10, "cosa": "Creare e pubblicare brani.", "perche": "Ho qualcosa da dire. Posso lasciare un segno.", "tasks": [{"t": "Riprendere a produrre", "done": false}], "notes": ""}, {"id": "a4", "name": "Pubblico", "color": "blue", "progress": 5, "cosa": "Capire a quale pubblico mi rivolgo.", "perche": "L arte non esiste senza pubblico.", "tasks": [{"t": "Identikit del mio pubblico", "done": false}], "notes": ""}, {"id": "a5", "name": "Branding e Marketing", "color": "gray", "progress": 5, "cosa": "Nome, immagine, comunicazione costante.", "perche": "E ora di salire di livello.", "tasks": [{"t": "Bigliettini aggiornati", "done": false}], "notes": ""}]};
+const INIT_TODO=[];
+const INIT_PHRASES=[
+  "Ogni giorno e una nuova opportunita per migliorare.",
+  "Fai oggi quello che il tuo futuro io ti ringraziera di aver fatto.",
+  "Il successo e la somma di piccoli sforzi ripetuti ogni giorno.",
+  "Non aspettare il momento perfetto, prenditi il momento e rendilo perfetto.",
+  "La disciplina e il ponte tra gli obiettivi e i risultati.",
+  "Non e mai troppo tardi per essere quello che avresti potuto essere. (George Eliot)",
+  "Ogni grande viaggio inizia con un singolo passo. (Lao Tzu)",
+  "Il modo per cominciare e smettere di parlare e iniziare a fare. (Walt Disney)",
+  "La vita e per il 10% cosa ti accade e per il 90% come reagisci. (Charles R. Swindoll)",
+  "Ci sono due regole nella vita: 1. Non mollare mai; 2. Non dimenticare mai la regola n.1. (Duke Ellington)",
+  "Se qualcosa non ti piace, cambiala. Se non puoi cambiarla, cambia il tuo atteggiamento. Non lamentarti. (Maya Angelou)",
+  "Se vuoi qualcosa che non hai mai avuto, devi fare qualcosa che non hai mai fatto. (Thomas Jefferson)",
+  "Prima ti ignorano, poi ti deridono, poi ti combattono. Poi vinci. (Mahatma Gandhi)",
+  "E nel momento delle decisioni che si plasma il tuo destino. (Anthony Robbins)",
+  "Niente e davvero difficile se lo si divide in tanti piccoli pezzettini. (Henry Ford)",
+  "Ho odiato ogni minuto di allenamento, ma mi dicevo: non rinunciare. Soffri ora e vivrai il resto della tua vita come un campione. (Muhammad Ali)",
+  "Se non credi in te stesso, troverai sempre un modo per non vincere. (Carl Lewis)",
+  "Credi in te stesso quando nessun altro lo fa. Cio ti rende all'istante un vincitore. (Venus Williams)",
+  "Non puoi mettere limiti a niente. Piu sogni, piu andrai lontano. (Michael Phelps)",
+  "Un vincitore e un sognatore che non si e mai arreso. (Nelson Mandela)",
+  "Credere di potere e essere gia a meta strada. (Theodore Roosevelt)",
+  "Innamorati prima di te, poi della vita. (Frida Kahlo)",
+  "Amare non e guardarsi l un l altro, ma guardare insieme nella stessa direzione. (Antoine de Saint-Exupery)",
+  "Se perdi qualcuno ma trovi te stesso, hai vinto.",
+  "Se vuoi essere amato, ama. (Seneca)",
+  "Non importa chi tu sia, o da dove tu venga. La capacita di trionfare inizia con te. Sempre. (Oprah Winfrey)",
+  "Se puoi sognarlo, puoi farlo. (Walt Disney)",
+  "Non avrai mai fallito finche continuerai a provare.",
+  "Se l opportunita non bussa, costruisci una porta. (Milton Berle)",
+  "Quando i vorrei diventano voglio, i dovrei diventano devo, allora i desideri iniziano a trasformarsi in realta. (Anthony Robbins)",
+  "Non e possibile risolvere un problema con lo stesso livello di pensiero che lo sta creando. (Albert Einstein)",
+  "Stai lontano da chi tenta di frenare le tue ambizioni. Le persone da poco lo fanno sempre. (Mark Twain)",
+  "Cambia i tuoi pensieri e cambierai il tuo mondo. (Norman Vincent Peale)",
+  "Vivi come se dovessi morire domani. Impara come se dovessi vivere per sempre. (Mahatma Gandhi)",
+  "In mezzo a ogni difficolta si nasconde un opportunita. (Albert Einstein)",
+  "Sembra sempre impossibile finche non viene realizzato. (Nelson Mandela)",
+  "La felicita dipende da noi stessi. (Aristotele)",
+  "La vita e cio che accade mentre siamo impegnati a fare altri progetti. (John Lennon)",
+  "Siamo cio che facciamo ripetutamente. L eccellenza non e un atto, ma un abitudine. (Aristotele)",
+  "L uomo e cio in cui crede. (Anton Chekhov)",
+  "Conoscere se stessi e l inizio di tutta la saggezza. (Aristotele)",
+  "Tra stimolo e risposta c e uno spazio. In quello spazio risiede il nostro potere di scegliere. (Viktor Frankl)",
+  "Agisci come se cio che fai facesse la differenza. Lo fa. (William James)",
+  "Piccoli passi ogni giorno portano a risultati straordinari nel tempo.",
+  "Tu stesso, tanto quanto chiunque altro, meriti il tuo amore e il tuo affetto. (Buddha)",
+  "Nessuno puo farti sentire inferiore senza il tuo consenso. (Eleanor Roosevelt)",
+  "La piu grande scoperta della mia generazione e che un essere umano puo cambiare la sua vita cambiando i suoi atteggiamenti. (William James)",
+  "Anche se sei sulla strada giusta, verrai investito se resti fermo. (Will Rogers)",
+  "Se pensi di essere troppo piccolo per fare la differenza, prova a dormire con una zanzara. (Dalai Lama)",
+  "Scegli un lavoro che ami e non dovrai lavorare neppure un giorno nella tua vita. (Confucio)",
+  "Le opportunita non accadono. Le crei tu. (Chris Grosser)",
+  "L unico modo per fare un lavoro straordinario e amare cio che fai. (Steve Jobs)",
+  "Il successo non sta in cio che possiedi, ma in chi sei. (Bo Bennett)",
+  "Non smettere mai di fare cose straordinarie per paura di sembrare ordinari.",
+  "I tuoi limiti esistono solo nella tua mente.",
+  "Fai cio che puoi, con quello che hai, dove sei. (Theodore Roosevelt)",
+  "Il coraggio non e assenza di paura, ma la capacita di agire nonostante essa.",
+  "Il successo non e definitivo, il fallimento non e fatale: cio che conta e il coraggio di continuare. (Winston Churchill)",
+  "Non guardare l orologio; fai quello che fa lui, continua ad andare. (Sam Levenson)",
+  "L unica persona che puoi essere domani e quella che decidi di essere oggi.",
+  "Il genio e per l'1% ispirazione e per il 99% traspirazione. (Thomas Edison)",
+  "Non arrenderti mai su qualcosa a cui non riesci a stare senza pensare.",
+  "Sii il cambiamento che vuoi vedere nel mondo. (Mahatma Gandhi)",
+  "Cio che la mente puo concepire e credere, lo puo ottenere. (Napoleon Hill)",
+  "Non e la montagna che dobbiamo conquistare, ma noi stessi. (Edmund Hillary)",
+  "Un obiettivo senza un piano e solo un desiderio.",
+  "Ogni esperto era una volta un principiante.",
+  "Non confrontarti con gli altri. Confrontati con chi eri ieri.",
+  "Il dolore di oggi e la forza di domani.",
+  "Se non costruisci il tuo sogno, qualcun altro ti assumera per costruire il suo.",
+  "Non hai bisogno di essere straordinario per iniziare, ma devi iniziare per essere straordinario.",
+  "Il pessimista vede difficolta in ogni opportunita; l ottimista vede opportunita in ogni difficolta. (Winston Churchill)",
+  "Smetti di aspettare. Non arrivera mai il momento giusto.",
+  "Dai alla tua vita il senso che la rende degna di essere vissuta.",
+  "Ieri e storia, domani e un mistero, oggi e un dono: ecco perche si chiama presente.",
+  "La velocita non serve, cio che conta e non fermarsi. (Confucio)",
+  "Una piccola azione positiva vale piu di mille pensieri positivi.",
+  "La motivazione ti fa partire, l abitudine ti fa continuare.",
+  "Non temere la lentezza, temi solo l immobilita. (Proverbio cinese)",
+  "Ogni mattina hai due scelte: continuare a dormire i tuoi sogni o svegliarti e inseguirli.",
+  "La grandezza non e data da dove ti trovi, ma dalla direzione in cui ti muovi.",
+  "Non puoi tornare indietro e cambiare l inizio, ma puoi ricominciare e cambiare il finale.",
+  "Il sacrificio di oggi e il successo di domani.",
+  "Concentrati sul progresso, non sulla perfezione.",
+  "Il fallimento e solo l opportunita di ricominciare in modo piu intelligente. (Henry Ford)",
+  "La persistenza vince la resistenza.",
+  "Non lasciare che il rumore delle opinioni altrui sovrasti la tua voce interiore. (Steve Jobs)",
+  "Il tuo tempo e limitato, non sprecarlo vivendo la vita di qualcun altro. (Steve Jobs)",
+  "Ogni giorno fai una cosa che ti spaventa. (Eleanor Roosevelt)",
+  "Il vero fallimento e non provare.",
+  "Quando smetti di crescere, inizi a morire.",
+  "La semplicita e la massima sofisticazione. (Leonardo da Vinci)",
+  "Il modo migliore per predire il futuro e crearlo. (Peter Drucker)",
+  "Se puoi immaginarlo, puoi costruirlo.",
+  "Sii paziente con te stesso. La crescita richiede tempo.",
+  "La vita inizia alla fine della tua zona di comfort. (Neale Donald Walsch)",
+  "Chi si ferma e perduto.",
+  "Meglio un giorno da leone che cento da pecora.",
+  "Ho fallito piu di 9.000 tiri in carriera. E per questo che ho avuto successo. (Michael Jordan)",
+  "Fai del tuo meglio finche non sai fare di meglio. Poi, quando sai fare di meglio, fai meglio. (Maya Angelou)",
+  "Il carattere si costruisce nelle piccole battaglie quotidiane.",
+  "La mente e come un paracadute: funziona solo quando e aperta.",
+  "Pensa in grande, agisci in piccolo, fallisci in fretta, impara sempre.",
+  "La vita premia chi agisce, non chi aspetta.",
+  "Ogni volta che hai voglia di mollare, ricordati perche hai iniziato.",
+  "Sii la versione migliore di te stesso, non una copia di qualcun altro.",
+  "Non lasciare che ieri occupi troppo spazio del tuo oggi.",
+  "La fortuna aiuta gli audaci. (Virgilio)",
+  "Ogni mattina ci svegliamo con una scelta: arrendersi o riprovare.",
+  "Il successo di solito arriva a coloro che sono troppo impegnati per cercarlo. (Henry David Thoreau)",
+  "Fai che ogni giorno conti.",
+  "La tua vita non migliora per caso, migliora per cambiamento.",
+  "Non importa quanto sei lento, finche non ti fermi.",
+  "Il progresso e impossibile senza cambiamento. (George Bernard Shaw)",
+  "Chi punta alle stelle, anche se non le raggiunge, non atterra nel fango.",
+  "Ogni sogno inizia con un sognatore. (Harriet Tubman)",
+  "Trasforma la paura in carburante.",
+  "Devi alzarti dal letto ogni mattina con determinazione se vuoi andare a dormire con soddisfazione. (George Lorimer)",
+  "L educazione e l arma piu potente che si possa usare per cambiare il mondo. (Nelson Mandela)",
+  "La cosa piu difficile e la decisione iniziale di agire, il resto e solo tenacia. (Amelia Earhart)",
+  "Da soli possiamo fare cosi poco; insieme possiamo fare cosi tanto. (Helen Keller)",
+  "Un solo piccolo pensiero positivo al mattino puo cambiare l intera giornata. (Dalai Lama)",
+  "Non lasciare che l opinione che gli altri hanno di te diventi la tua realta. (Les Brown)",
+  "Non sono un prodotto delle circostanze. Sono un prodotto delle mie decisioni. (Stephen R. Covey)",
+  "Fate del vostro meglio. Nessuno puo fare di piu. (John Wooden)",
+  "Preferisco pentirmi delle cose che ho fatto piuttosto che rimpiangere quelle che non ho fatto. (Lucille Ball)",
+  "Sii depresso oppure motiva te stesso. Qualunque cosa vada fatta, e sempre tua la scelta. (Wayne Dyer)",
+  "Quando ti alzi al mattino, pensa quale prezioso privilegio e essere vivi: respirare, pensare, provare gioia e amare. (Marco Aurelio)",
+  "L autostima e la pietra angolare di tutte le virtu. (John Herschel)",
+  "Non essere una se-potessi-sarei. Sii e basta. (Sarah Ban Breathnach)",
+];
+
+const INIT_EVENTS=[];
+
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function todayFormatted(){var d=new Date();return DAYS_IT[d.getDay()]+" "+d.getDate()+" "+MONTHS_IT[d.getMonth()]+" "+d.getFullYear();}
+function getPhraseForToday(phrases){if(!phrases||!phrases.length)return null;var d=new Date();var seed=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();return phrases[seed%phrases.length];}
+const EVENT_PALETTE=["#3182ce","#d69e2e","#e53e3e","#38a169","#805ad5","#dd6b20","#319795","#d53f8c","#2b6cb0","#744210"];
+const RECUR_COLORS=["#3182ce","#d69e2e","#e53e3e","#38a169","#805ad5","#dd6b20","#319795","#d53f8c","#2b6cb0","#744210"];
+const EVENT_ICONS=[{k:"calendar",e:"📅"},{k:"plane",e:"✈️"},{k:"soccer",e:"⚽"},{k:"popcorn",e:"🍿"},{k:"beach",e:"🏖️"},{k:"music",e:"🎵"},{k:"food",e:"🍽️"},{k:"gift",e:"🎁"},{k:"heart",e:"❤️"},{k:"star",e:"⭐"},{k:"doctor",e:"🏥"},{k:"car",e:"🚗"},{k:"house",e:"🏠"},{k:"money",e:"💰"},{k:"gym",e:"🏋️"}];
+function getEventColor(events,evId){var idx=events.findIndex(function(e){return e.id===evId;});return EVENT_PALETTE[((idx<0?0:idx))%EVENT_PALETTE.length];}
+
+function getUpcomingEvents(events,months){
+  months=months||24;var today=new Date();today.setHours(0,0,0,0);var end=new Date(today);end.setMonth(end.getMonth()+months);var result=[];
+  events.forEach(function(ev){
+    var excl=ev.excludedDates||[];
+    if(ev.type==="single"){var d=new Date(ev.date+"T00:00:00");if(d>=today&&d<=end&&excl.indexOf(ev.date)<0)result.push(Object.assign({},ev,{nextDate:ev.date}));}
+    else if(ev.type==="birthday"||ev.type==="yearly"){for(var y=today.getFullYear();y<=end.getFullYear()+1;y++){var p=ev.date.split("-");var d2=new Date(y,parseInt(p[1])-1,parseInt(p[2]));var nd=d2.toISOString().slice(0,10);if(d2>=today&&d2<=end&&excl.indexOf(nd)<0)result.push(Object.assign({},ev,{nextDate:nd}));}}
+    else if(ev.type==="monthly"){var cur=new Date(today);while(cur<=end){var d3=new Date(cur.getFullYear(),cur.getMonth(),ev.dayOfMonth);var nd3=d3.toISOString().slice(0,10);if(d3>=today&&d3<=end&&excl.indexOf(nd3)<0)result.push(Object.assign({},ev,{nextDate:nd3}));cur.setMonth(cur.getMonth()+1);}}
+    else if(ev.type==="weekly"){var cur2=new Date(today);while(cur2<=end){var nd2=cur2.toISOString().slice(0,10);if((ev.weekDays||[]).indexOf(cur2.getDay())>=0&&excl.indexOf(nd2)<0)result.push(Object.assign({},ev,{nextDate:nd2}));cur2.setDate(cur2.getDate()+1);}}
+  });
+  result.sort(function(a,b){return a.nextDate.localeCompare(b.nextDate);});return result;
+}
+function getDueBanners(events,dismissed){
+  var today=todayStr();var result=[];
+  events.forEach(function(ev){getUpcomingEvents([ev],1).forEach(function(u){var daysAway=Math.round((new Date(u.nextDate+"T00:00:00")-new Date(today+"T00:00:00"))/864e5);var show=ev.notifyDays===0?daysAway===0:daysAway<=ev.notifyDays;if(show){var key=ev.id+"_"+u.nextDate;if(!dismissed||!dismissed[key])result.push(Object.assign({},u,{key:key,daysAway:daysAway}));}});});
+  return result;
+}
+
+function DragList(props){
+  var _s=useState(null);var dragIdx=_s[0];var setDragIdx=_s[1];
+  var _s2=useState(null);var overIdx=_s2[0];var setOverIdx=_s2[1];
+  function drop(di){if(dragIdx===null||dragIdx===di)return;var a=props.items.slice();var m=a.splice(dragIdx,1)[0];a.splice(di,0,m);props.onReorder(a);setDragIdx(null);setOverIdx(null);}
+  return React.createElement(React.Fragment,null,props.items.map(function(item,i){
+    return React.createElement("div",{key:item.id||i,draggable:true,onDragStart:function(){setDragIdx(i);},onDragOver:function(e){e.preventDefault();setOverIdx(i);},onDragEnd:function(){setDragIdx(null);setOverIdx(null);},onDrop:function(){drop(i);},style:{opacity:dragIdx===i?0.4:1,transition:"opacity 0.15s"}},props.renderItem(item,i,overIdx===i&&dragIdx!==i));
+  }));
+}
+function PBar(props){var c=colMap[props.color]||"#718096";return React.createElement("div",{style:{background:"#e2e8f0",borderRadius:8,height:10,overflow:"hidden",marginBottom:6}},React.createElement("div",{style:{width:Math.min(100,Math.max(0,props.value))+"%",background:c,height:"100%",borderRadius:8,transition:"width 0.4s"}}));}
+function NoteModal(props){
+  var _s=useState(props.notes||"");var val=_s[0];var setVal=_s[1];
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16},onClick:props.onClose},
+    React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,maxWidth:480,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"},onClick:function(e){e.stopPropagation();}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+        React.createElement("h3",{style:{margin:0,fontSize:17,color:"#2d3748",fontWeight:700}},props.title),
+        React.createElement("div",{style:{display:"flex",gap:8}},
+          React.createElement("button",{onClick:function(){props.onSave(val);props.onClose();},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontWeight:700}},"Salva"),
+          React.createElement("button",{onClick:props.onClose,style:{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#718096"}},"X"))),
+      React.createElement("textarea",{value:val,onChange:function(e){setVal(e.target.value);},autoFocus:true,placeholder:"Scrivi le tue note qui...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:10,fontSize:14,resize:"vertical",minHeight:140,boxSizing:"border-box"}})));
+}
+function PrioStar(props){var colors={high:"#e53e3e",mid:"#d69e2e",low:"#38a169"};var col=props.prio&&colors[props.prio]?colors[props.prio]:"#cbd5e0";return React.createElement("span",{onClick:props.onClick,title:"Priorita",style:{cursor:"pointer",fontSize:16,color:col,flexShrink:0,lineHeight:1}},"★");}
+function PrioModal(props){
+  var _s=useState(props.current||null);var sel=_s[0];var setSel=_s[1];
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16},onClick:props.onClose},
+    React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,maxWidth:300,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"},onClick:function(e){e.stopPropagation();}},
+      React.createElement("h3",{style:{margin:"0 0 16px",fontSize:16,fontWeight:700,color:"#2d3748"}},"Imposta Priorita"),
+      React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8,marginBottom:16}},
+        PRIO_OPTS.map(function(o){return React.createElement("div",{key:o.v||"none",onClick:function(){setSel(o.v);},style:{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:10,cursor:"pointer",border:sel===o.v?"2px solid #667eea":"1px solid #e2e8f0",background:sel===o.v?"#f5f3ff":"#fff"}},
+          React.createElement("span",{style:{fontSize:18,color:o.color}},"★"),
+          React.createElement("span",{style:{fontSize:14,fontWeight:600,color:"#2d3748"}},o.label));})),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("button",{onClick:function(){props.onSave(sel);props.onClose();},style:{flex:1,background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"8px",cursor:"pointer",fontWeight:700}},"Salva"),
+        React.createElement("button",{onClick:props.onClose,style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer"}},"Annulla"))));
+}
+function ThemePicker(props){
+  var opts=props.includeSection?[["section","Sezione","linear-gradient(135deg,#667eea,#764ba2)","#fff"]]:[];
+  var all=opts.concat(THEME_LABELS);var cur=props.current||(props.includeSection?"section":null);
+  return React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}},
+    all.map(function(t){var bg=t[0]==="section"?"linear-gradient(135deg,#667eea,#764ba2)":t[2];var selected=cur===t[0]||(!cur&&t[0]==="section"&&props.includeSection);
+      return React.createElement("div",{key:t[0],onClick:function(){props.onChange(t[0]==="section"?null:t[0]);},title:t[1],style:{width:28,height:28,borderRadius:6,cursor:"pointer",background:bg,border:selected?"3px solid #2d3748":"2px solid #e2e8f0",flexShrink:0}});}));
+}
+function BannerOverlay(props){
+  var _s=useState(0);var idx=_s[0];var setIdx=_s[1];
+  if(!props.banners||!props.banners.length)return null;
+  var b=props.banners[Math.min(idx,props.banners.length-1)];
+  var typeLabel={single:"Evento",birthday:"Compleanno",yearly:"Ricorrenza annuale",monthly:"Ricorrenza mensile",weekly:"Ricorrenza settimanale"};
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:4000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+    React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:28,maxWidth:420,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",textAlign:"center"}},
+      React.createElement("div",{style:{fontSize:32,marginBottom:8}},b.type==="birthday"?"🎂":b.type==="weekly"||b.type==="monthly"?"🔁":"📅"),
+      React.createElement("div",{style:{fontSize:12,color:"#667eea",fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:6}},typeLabel[b.type]||"Evento"),
+      React.createElement("h2",{style:{margin:"0 0 8px",fontSize:20,color:"#2d3748"}},b.title),
+      b.daysAway===0&&React.createElement("div",{style:{background:"#fed7d7",color:"#c53030",borderRadius:8,padding:"4px 12px",fontSize:13,fontWeight:700,display:"inline-block",marginBottom:8}},"OGGI"),
+      b.daysAway>0&&React.createElement("div",{style:{background:"#ebf8ff",color:"#2b6cb0",borderRadius:8,padding:"4px 12px",fontSize:13,fontWeight:700,display:"inline-block",marginBottom:8}},"Tra "+b.daysAway+" giorni ("+b.nextDate+")"),
+      b.notes&&React.createElement("p",{style:{fontSize:14,color:"#718096",marginBottom:12}},b.notes),
+      props.banners.length>1&&React.createElement("div",{style:{fontSize:12,color:"#a0aec0",marginBottom:12}},(idx+1)+" di "+props.banners.length),
+      React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8,marginTop:16}},
+        React.createElement("button",{onClick:function(){props.onAddTodo(b);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700,fontSize:14}},"Aggiungi a To Do List"),
+        React.createElement("button",{onClick:function(){props.onClose(b.key);},style:{background:"#e53e3e",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700,fontSize:14}},"Chiudi definitivamente"),
+        React.createElement("button",{onClick:function(){if(idx<props.banners.length-1)setIdx(idx+1);else props.onIgnore();},style:{background:"#e2e8f0",color:"#4a5568",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:600,fontSize:14}},"Ignora per ora"))));
+}
+
+function TodoSection(props){
+  var todos=props.todos;var setTodos=props.setTodos;
+  var _s=useState("");var newText=_s[0];var setNewText=_s[1];
+  var _s2=useState(null);var noteTarget=_s2[0];var setNoteTarget=_s2[1];
+  var _s3=useState(null);var editTarget=_s3[0];var setEditTarget=_s3[1];
+  var _s4=useState("");var editVal=_s4[0];var setEditVal=_s4[1];
+  function add(){if(!newText.trim())return;setTodos(function(t){return t.concat([{id:mkId(),text:newText.trim(),done:false,notes:""}]);});setNewText("");}
+  function toggle(id){setTodos(function(t){return t.map(function(x){return x.id===id?Object.assign({},x,{done:!x.done}):x;});});}
+  function remove(id){setTodos(function(t){return t.filter(function(x){return x.id!==id;});});}
+  function saveNote(id,note){setTodos(function(t){return t.map(function(x){return x.id===id?Object.assign({},x,{notes:note}):x;});});}
+  function saveText(id,text){setTodos(function(t){return t.map(function(x){return x.id===id?Object.assign({},x,{text:text}):x;});});setEditTarget(null);}
+  var pending=todos.filter(function(t){return !t.done;});var done=todos.filter(function(t){return t.done;});
+  var noteItem=noteTarget?todos.find(function(t){return t.id===noteTarget;}):null;
+  return React.createElement("div",{style:{maxWidth:700,margin:"0 auto",padding:"24px 20px"}},
+    React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:6}},"To Do List"),
+    React.createElement("p",{style:{color:"#718096",marginBottom:20,fontSize:14}},pending.length+" azioni da completare"),
+    React.createElement("div",{style:{display:"flex",gap:8,marginBottom:24}},
+      React.createElement("input",{value:newText,onChange:function(e){setNewText(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")add();},placeholder:"Aggiungi un'azione...",style:{flex:1,border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 14px",fontSize:15}}),
+      React.createElement("button",{onClick:add,style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:700,fontSize:18}},"+")),
+    React.createElement(DragList,{items:pending,onReorder:function(a){setTodos(a.concat(done));},renderItem:function(item){
+      return React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:10,background:"#fff",borderRadius:12,padding:"12px 14px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",border:"1px solid #e2e8f0"}},
+        React.createElement("span",{style:{color:"#cbd5e0",cursor:"grab",fontSize:14,flexShrink:0}},"::"),
+        React.createElement("input",{type:"checkbox",checked:item.done,onChange:function(){toggle(item.id);},style:{width:18,height:18,accentColor:"#38a169",flexShrink:0}}),
+        editTarget===item.id
+          ?React.createElement("div",{style:{flex:1,display:"flex",gap:8}},
+              React.createElement("input",{autoFocus:true,value:editVal,onChange:function(e){setEditVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")saveText(item.id,editVal);if(e.key==="Escape")setEditTarget(null);},style:{flex:1,border:"2px solid #667eea",borderRadius:8,padding:"5px 8px",fontSize:14}}),
+              React.createElement("button",{onClick:function(){saveText(item.id,editVal);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}},"OK"))
+          :React.createElement("span",{onClick:function(){setEditTarget(item.id);setEditVal(item.text);},style:{flex:1,fontSize:15,color:"#2d3748",cursor:"pointer"}},item.text),
+        React.createElement("button",{onClick:function(){setNoteTarget(item.id);},style:{background:item.notes?"#667eea":"#e2e8f0",color:item.notes?"#fff":"#718096",border:"none",borderRadius:8,padding:"3px 10px",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}},"nota"),
+        React.createElement("button",{onClick:function(){remove(item.id);},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:18,flexShrink:0,marginLeft:4}},"x"));}
+    }),
+    done.length>0&&React.createElement(React.Fragment,null,
+      React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#a0aec0",margin:"20px 0 10px",textTransform:"uppercase",letterSpacing:1}},"Completate ("+done.length+")"),
+      done.map(function(item){return React.createElement("div",{key:item.id,style:{display:"flex",alignItems:"center",gap:10,marginBottom:8,background:"#f7fafc",borderRadius:12,padding:"10px 14px",opacity:0.7}},
+        React.createElement("input",{type:"checkbox",checked:true,onChange:function(){toggle(item.id);},style:{width:18,height:18,accentColor:"#38a169",flexShrink:0}}),
+        React.createElement("span",{style:{flex:1,fontSize:15,color:"#a0aec0",textDecoration:"line-through"}},item.text),
+        React.createElement("button",{onClick:function(){remove(item.id);},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:18,flexShrink:0}},"x"));})),
+    noteTarget&&noteItem&&React.createElement(NoteModal,{title:"Nota",notes:noteItem.notes||"",onSave:function(note){saveNote(noteTarget,note);},onClose:function(){setNoteTarget(null);}}));
+}
+
+function FinanzaSection(){
+  var _s=useState([]);var voci=_s[0];var setVoci=_s[1];
+  var _s2=useState({desc:"",importo:"",tipo:"uscita",data:todayStr(),cat:""});var form=_s2[0];var setForm=_s2[1];
+  var _s3=useState(false);var showAdd=_s3[0];var setShowAdd=_s3[1];
+  useEffect(function(){fbLoad("alm_finanza",[]).then(function(v){setVoci(v);});},[]);
+  useEffect(function(){fbSave("alm_finanza",voci);},[voci]);
+  function hf(k,v){setForm(function(f){var n=Object.assign({},f);n[k]=v;return n;});}
+  function save(){if(!form.desc.trim()||!form.importo)return;setVoci(function(vs){return vs.concat([Object.assign({},form,{id:mkId(),importo:parseFloat(form.importo)})]);});setForm({desc:"",importo:"",tipo:"uscita",data:todayStr(),cat:""});setShowAdd(false);}
+  var entrate=voci.filter(function(v){return v.tipo==="entrata";}).reduce(function(s,v){return s+v.importo;},0);
+  var uscite=voci.filter(function(v){return v.tipo==="uscita";}).reduce(function(s,v){return s+v.importo;},0);
+  var saldo=entrate-uscite;
+  var sorted=voci.slice().sort(function(a,b){return b.data.localeCompare(a.data);});
+  return React.createElement("div",{style:{maxWidth:800,margin:"0 auto",padding:"24px 20px"}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
+      React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Finanza"),
+      React.createElement("button",{onClick:function(){setShowAdd(function(v){return !v;});},style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontWeight:700}},"+ Aggiungi")),
+    React.createElement("div",{style:{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap"}},
+      React.createElement("div",{style:{flex:1,minWidth:130,background:"#f0fff4",borderRadius:12,padding:"14px 18px",border:"1px solid #9ae6b4"}},
+        React.createElement("div",{style:{fontSize:12,color:"#276749",fontWeight:700,marginBottom:4}},"ENTRATE"),
+        React.createElement("div",{style:{fontSize:20,fontWeight:800,color:"#276749"}},"+"+entrate.toFixed(2)+" EUR")),
+      React.createElement("div",{style:{flex:1,minWidth:130,background:"#fff5f5",borderRadius:12,padding:"14px 18px",border:"1px solid #feb2b2"}},
+        React.createElement("div",{style:{fontSize:12,color:"#c53030",fontWeight:700,marginBottom:4}},"USCITE"),
+        React.createElement("div",{style:{fontSize:20,fontWeight:800,color:"#c53030"}},"-"+uscite.toFixed(2)+" EUR")),
+      React.createElement("div",{style:{flex:1,minWidth:130,background:saldo>=0?"#ebf8ff":"#fff5f5",borderRadius:12,padding:"14px 18px",border:"1px solid "+(saldo>=0?"#90cdf4":"#feb2b2")}},
+        React.createElement("div",{style:{fontSize:12,color:saldo>=0?"#2b6cb0":"#c53030",fontWeight:700,marginBottom:4}},"SALDO"),
+        React.createElement("div",{style:{fontSize:20,fontWeight:800,color:saldo>=0?"#2b6cb0":"#c53030"}},(saldo>=0?"+":"-")+Math.abs(saldo).toFixed(2)+" EUR"))),
+    showAdd&&React.createElement("div",{style:{background:"#fff",borderRadius:12,padding:20,border:"1px solid #e2e8f0",boxShadow:"0 2px 8px rgba(0,0,0,0.08)",marginBottom:20}},
+      React.createElement("h3",{style:{margin:"0 0 14px",fontSize:15,fontWeight:700}},"Nuova voce"),
+      React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}},
+        React.createElement("input",{placeholder:"Descrizione",value:form.desc,onChange:function(e){hf("desc",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14}}),
+        React.createElement("input",{type:"number",placeholder:"Importo",value:form.importo,onChange:function(e){hf("importo",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14}}),
+        React.createElement("select",{value:form.tipo,onChange:function(e){hf("tipo",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,background:"#fff"}},React.createElement("option",{value:"uscita"},"Uscita"),React.createElement("option",{value:"entrata"},"Entrata")),
+        React.createElement("input",{type:"date",value:form.data,onChange:function(e){hf("data",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14}}),
+        React.createElement("input",{placeholder:"Categoria (Casa, Cibo...)",value:form.cat,onChange:function(e){hf("cat",e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,gridColumn:"1/-1"}})),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("button",{onClick:save,style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"8px 20px",cursor:"pointer",fontWeight:700}},"Salva"),
+        React.createElement("button",{onClick:function(){setShowAdd(false);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer"}},"Annulla"))),
+    sorted.length===0&&!showAdd&&React.createElement("div",{style:{textAlign:"center",padding:40,color:"#a0aec0"}},"Nessuna voce. Premi + Aggiungi per iniziare."),
+    sorted.map(function(v){return React.createElement("div",{key:v.id,style:{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:10,padding:"10px 14px",marginBottom:8,border:"1px solid #e2e8f0"}},
+      React.createElement("div",{style:{width:10,height:10,borderRadius:"50%",background:v.tipo==="entrata"?"#38a169":"#e53e3e",flexShrink:0}}),
+      React.createElement("div",{style:{flex:1}},
+        React.createElement("div",{style:{fontWeight:700,fontSize:14,color:"#2d3748"}},v.desc),
+        React.createElement("div",{style:{fontSize:12,color:"#718096"}},v.data+(v.cat?" - "+v.cat:""))),
+      React.createElement("div",{style:{fontWeight:800,fontSize:15,color:v.tipo==="entrata"?"#38a169":"#e53e3e"}},(v.tipo==="entrata"?"+":"-")+v.importo.toFixed(2)+" EUR"),
+      React.createElement("button",{onClick:function(){setVoci(function(vs){return vs.filter(function(x){return x.id!==v.id;});});},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:16,padding:"0 4px"}},"x"));})
+  );
+}
+
+function FrasiSection(props){
+  var phrases=props.phrases;var setPhrases=props.setPhrases;
+  var _s=useState("");var newP=_s[0];var setNewP=_s[1];
+  var _s2=useState(null);var editIdx=_s2[0];var setEditIdx=_s2[1];
+  var _s3=useState("");var editVal=_s3[0];var setEditVal=_s3[1];
+  var _s4=useState(false);var showImport=_s4[0];var setShowImport=_s4[1];
+  var _s5=useState("");var importText=_s5[0];var setImportText=_s5[1];
+  var today=getPhraseForToday(phrases);
+  function add(){if(!newP.trim())return;setPhrases(function(p){return p.concat([newP.trim()]);});setNewP("");}
+  function remove(i){setPhrases(function(p){return p.filter(function(_,j){return j!==i;});});}
+  function saveEdit(i){setPhrases(function(p){return p.map(function(x,j){return j===i?editVal:x;});});setEditIdx(null);}
+  return React.createElement("div",{style:{maxWidth:700,margin:"0 auto",padding:"24px 20px"}},
+    React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:6}},"Frasi del Giorno"),
+    React.createElement("p",{style:{color:"#718096",marginBottom:16,fontSize:14}},"Una frase diversa ogni giorno, sempre la stessa per tutto il giorno."),
+    today&&React.createElement("div",{style:{background:"linear-gradient(135deg,#667eea,#764ba2)",color:"#fff",borderRadius:12,padding:16,marginBottom:20,fontSize:15,fontStyle:"italic",lineHeight:1.6}},"Frase di oggi: \""+today+"\""),
+    React.createElement("div",{style:{display:"flex",gap:8,marginBottom:8}},
+      React.createElement("input",{value:newP,onChange:function(e){setNewP(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")add();},placeholder:"Nuova frase motivazionale...",style:{flex:1,border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 14px",fontSize:14}}),
+      React.createElement("button",{onClick:add,style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:700,fontSize:18}},"+")),
+    React.createElement("div",{style:{display:"flex",gap:8,marginBottom:20}},
+      React.createElement("button",{onClick:function(){setShowImport(true);},style:{background:"#667eea",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontWeight:700,fontSize:13}},"\u2B07 Importa lista frasi"),
+      React.createElement("button",{onClick:function(){if(window.confirm("Sei sicuro di voler eliminare TUTTE le frasi?"))setPhrases([]);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontWeight:700,fontSize:13}},"\uD83D\uDDD1 Elimina tutte")),
+    showImport&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:28,maxWidth:500,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)",maxHeight:"80vh",overflowY:"auto"}},
+        React.createElement("h3",{style:{margin:"0 0 8px",fontSize:17,color:"#2d3748"}},"Importa frasi motivazionali"),
+        React.createElement("p",{style:{fontSize:13,color:"#718096",marginBottom:12}},"Incolla le frasi (una per riga). Verranno aggiunte a quelle esistenti."),
+        React.createElement("textarea",{rows:10,value:importText,onChange:function(e){setImportText(e.target.value);},placeholder:"Prima frase...\nSeconda frase...\nTerza frase...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:13,resize:"vertical",boxSizing:"border-box",marginBottom:12}}),
+        React.createElement("div",{style:{marginBottom:12}},
+          React.createElement("button",{onClick:function(){setImportText(INIT_PHRASES.join("\n"));},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:600,color:"#4a5568"}},"Carica lista predefinita ("+INIT_PHRASES.length+" frasi)")),
+        React.createElement("div",{style:{display:"flex",gap:8}},
+          React.createElement("button",{onClick:function(){
+            var lines=importText.split("\n").map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+            if(!lines.length)return;
+            setPhrases(function(p){var existing=new Set(p);return p.concat(lines.filter(function(l){return !existing.has(l);}));});
+            setImportText("");setShowImport(false);
+          },style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:700}},"Importa"),
+          React.createElement("button",{onClick:function(){setPhrases(function(){
+            var lines=importText.split("\n").map(function(l){return l.trim();}).filter(Boolean);
+            return lines;
+          });setImportText("");setShowImport(false);},style:{background:"#e53e3e",color:"#fff",border:"none",borderRadius:8,padding:"10px 16px",cursor:"pointer",fontWeight:700}},"Sostituisci tutto"),
+          React.createElement("button",{onClick:function(){setShowImport(false);setImportText("");},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px 14px",cursor:"pointer"}},"Annulla")))),
+    React.createElement("div",{style:{fontSize:13,color:"#718096",marginBottom:12}},phrases.length+" frasi disponibili"),
+    phrases.map(function(p,i){
+      return React.createElement("div",{key:i,style:{display:"flex",alignItems:"center",gap:10,marginBottom:10,background:"#fff",borderRadius:10,padding:"12px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",border:today===p?"2px solid #667eea":"1px solid #e2e8f0"}},
+        today===p&&React.createElement("span",{style:{fontSize:11,color:"#667eea",fontWeight:700,flexShrink:0}},"OGGI"),
+        editIdx===i
+          ?React.createElement("div",{style:{flex:1,display:"flex",gap:8}},
+              React.createElement("input",{autoFocus:true,value:editVal,onChange:function(e){setEditVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")saveEdit(i);if(e.key==="Escape")setEditIdx(null);},style:{flex:1,border:"2px solid #667eea",borderRadius:8,padding:"5px 8px",fontSize:14}}),
+              React.createElement("button",{onClick:function(){saveEdit(i);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}},"OK"))
+          :React.createElement("span",{onClick:function(){setEditIdx(i);setEditVal(p);},style:{flex:1,fontSize:14,color:"#2d3748",cursor:"pointer",fontStyle:"italic"}},p),
+        React.createElement("button",{onClick:function(){remove(i);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",cursor:"pointer",fontSize:13,fontWeight:700,borderRadius:8,padding:"3px 10px",flexShrink:0}},"x"));}));
+}
+
+function CalendarSection(props){
+  var events=props.events;var setEvents=props.setEvents;var onAddTodo=props.onAddTodo;
+  var BLANK={title:"",type:"single",date:"",dateEnd:"",dayOfMonth:1,weekDays:[],notes:"",notifyDays:0,icon:"calendar",eventColor:""};
+  var _s=useState(false);var showForm=_s[0];var setShowForm=_s[1];
+  var _s2=useState(null);var editId=_s2[0];var setEditId=_s2[1];
+  var _s3=useState(BLANK);var form=_s3[0];var setForm=_s3[1];
+  var _s4=useState(null);var noteTarget=_s4[0];var setNoteTarget=_s4[1];
+  var _s5=useState(null);var recurModal=_s5[0];var setRecurModal=_s5[1];
+  var _s6=useState(null);var deleteModal=_s6[0];var setDeleteModal=_s6[1];
+  var _s7=useState(false);var showPast=_s7[0];var setShowPast=_s7[1];
+  var _s8=useState(null);var birthdayImportLocal=_s8[0];var setBirthdayImportLocal=_s8[1];
+  var birthdayImport=props.birthdayImportExt!==undefined?props.birthdayImportExt:birthdayImportLocal;
+  var setBirthdayImport=props.setBirthdayImportExt||setBirthdayImportLocal;
+  var _s9=useState("list");var calView=_s9[0];var setCalView=_s9[1];
+  var _s10=useState(false);var showViewMenu=_s10[0];var setShowViewMenu=_s10[1];
+  var _s11=useState(0);var calNavOffset=_s11[0];var setCalNavOffset=_s11[1];
+  var today=todayStr();
+  function hfc(field,val){setForm(function(f){var n=Object.assign({},f);n[field]=val;return n;});}
+  function toggleWD(d){setForm(function(f){var wd=f.weekDays||[];return Object.assign({},f,{weekDays:wd.indexOf(d)>=0?wd.filter(function(x){return x!==d;}):[].concat(wd,[d]).sort()});});}
+  function openAdd(){setForm(BLANK);setEditId(null);setShowForm(true);}
+  function openEdit(ev){
+    if(ev.type!=="single"){setRecurModal({ev:ev,mode:"edit"});return;}
+    setForm(Object.assign({},ev,{weekDays:ev.weekDays||[]}));setEditId(ev.id);setShowForm(true);
+  }
+  function cancelForm(){setShowForm(false);setEditId(null);setForm(BLANK);}
+  function saveForm(){
+    if(!form.title.trim())return;
+    if(editId){setEvents(function(ev){return ev.map(function(e){return e.id===editId?Object.assign({},form,{id:editId,excludedDates:e.excludedDates||[]}):e;});});}
+    else{setEvents(function(ev){return ev.concat([Object.assign({},form,{id:mkId(),excludedDates:[]})]);});}
+    cancelForm();
+  }
+  function editOnlyThis(ev,nextDate){setRecurModal(null);setForm(Object.assign({},ev,{id:null,type:"single",date:nextDate,weekDays:[]}));setEditId(null);setShowForm(true);}
+  function editAll(ev){setRecurModal(null);setForm(Object.assign({},ev,{weekDays:ev.weekDays||[]}));setEditId(ev.id);setShowForm(true);}
+  function askDelete(ev){
+    if(ev.type==="single"){setEvents(function(es){return es.filter(function(e){return e.id!==ev.id;});});}
+    else{setDeleteModal(ev);}
+  }
+  function deleteOnlyThis(ev){
+    var excl=(ev.excludedDates||[]).concat([ev.nextDate||ev._nextDate||today]);
+    setEvents(function(es){return es.map(function(e){return e.id===ev.id?Object.assign({},e,{excludedDates:excl}):e;});});
+    setDeleteModal(null);
+  }
+  function deleteAll(ev){setEvents(function(es){return es.filter(function(e){return e.id!==ev.id;});});setDeleteModal(null);}
+  function saveNote(id,note){setEvents(function(ev){return ev.map(function(e){return e.id===id?Object.assign({},e,{notes:note}):e;});});}
+  function addToTodo(ev){
+    if(onAddTodo){onAddTodo(Object.assign({},ev,{daysAway:0,key:ev.id+"_"+(ev.nextDate||today)}));}
+    if(ev.type==="single"){setEvents(function(es){return es.filter(function(e){return e.id!==ev.id;});});}
+    else{var excl=(ev.excludedDates||[]).concat([ev.nextDate||today]);setEvents(function(es){return es.map(function(e){return e.id===ev.id?Object.assign({},e,{excludedDates:excl}):e;});});}
+  }
+  function getEvColor(ev){return getEventColor(events,ev.id);}
+  var allUpcoming=getUpcomingEvents(events,24);
+  var pastEvents=events.filter(function(ev){if(ev.type!=="single")return false;var d=new Date(ev.date+"T00:00:00");var t=new Date(today+"T00:00:00");return d<t;});
+  var typeLabel={single:"Evento singolo",birthday:"Compleanno",yearly:"Ric. annuale",monthly:"Ric. mensile",weekly:"Ric. settimanale"};
+  var noteItem=noteTarget?events.find(function(e){return e.id===noteTarget;}):null;
+  var today_dt=new Date(today+"T00:00:00");
+  var DAYS_SHORT=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+  var MONTHS_FULL=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+  function eventsOnDate(dt){var ds=dt.toISOString().slice(0,10);return allUpcoming.filter(function(ev){if(ev.nextDate===ds)return true;if(ev.dateEnd&&ev.date<=ds&&ev.dateEnd>=ds)return true;return false;});}
+  var weekStart=new Date(today_dt);var wdx=weekStart.getDay()||7;weekStart.setDate(weekStart.getDate()-wdx+1+calNavOffset*7);
+  var monthRef=new Date(today_dt.getFullYear(),today_dt.getMonth()+calNavOffset,1);
+  function getMonthGrid(yr,mo){var first=new Date(yr,mo,1);var days=[];var s=new Date(first);var dw=s.getDay()||7;s.setDate(s.getDate()-dw+1);while(s<=new Date(yr,mo+1,0)||days.length%7!==0){days.push(new Date(s));s.setDate(s.getDate()+1);}return days;}
+  var monthGrid=getMonthGrid(monthRef.getFullYear(),monthRef.getMonth());
+  function getWeekGrid(){var days=[];for(var i=0;i<7;i++){var d=new Date(weekStart);d.setDate(weekStart.getDate()+i);days.push(d);}return days;}
+  var MONTHS_SHORT=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+  return React.createElement("div",{style:{maxWidth:800,margin:"0 auto",padding:"24px 20px"}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
+      React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Calendario"),
+      React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+        React.createElement("div",{style:{position:"relative"}},
+          React.createElement("button",{onClick:function(){setShowViewMenu(function(v){return !v;});},style:{background:"#ebf8ff",color:"#3182ce",border:"1px solid #bee3f8",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontWeight:700,fontSize:13}},"Visualizza \u25be"),
+          showViewMenu&&React.createElement("div",{style:{position:"absolute",top:"110%",left:0,background:"#fff",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,0.15)",border:"1px solid #e2e8f0",zIndex:200,minWidth:130}},
+            [["list","Lista"],["week","Settimana"],["month","Mese"]].map(function(v){return React.createElement("div",{key:v[0],onClick:function(){setCalView(v[0]);setShowViewMenu(false);setCalNavOffset(0);},style:{padding:"10px 16px",cursor:"pointer",fontWeight:calView===v[0]?700:400,color:calView===v[0]?"#3182ce":"#2d3748",background:calView===v[0]?"#ebf8ff":"transparent"}},v[1]);}))),
+        React.createElement("button",{onClick:openAdd,style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontWeight:700}},"+ Aggiungi"))),
+    deleteModal&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:28,maxWidth:400,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}},
+        React.createElement("h3",{style:{margin:"0 0 12px",fontSize:17,color:"#2d3748"}},"Elimina ricorrenza"),
+        React.createElement("p",{style:{fontSize:14,color:"#718096",marginBottom:20}},'Vuoi eliminare solo questa occorrenza o tutte le ricorrenze di "'+deleteModal.title+'"?'),
+        React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+          React.createElement("button",{onClick:function(){deleteOnlyThis(deleteModal);},style:{background:"#e53e3e",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700}},"Elimina solo questa occorrenza"),
+          React.createElement("button",{onClick:function(){deleteAll(deleteModal);},style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700}},"Elimina tutte le ricorrenze"),
+          React.createElement("button",{onClick:function(){setDeleteModal(null);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px",cursor:"pointer"}},"Annulla")))),
+    recurModal&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:28,maxWidth:400,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}},
+        React.createElement("h3",{style:{margin:"0 0 12px",fontSize:17,color:"#2d3748"}},"Modifica ricorrenza"),
+        React.createElement("p",{style:{fontSize:14,color:"#718096",marginBottom:20}},'Solo questa occorrenza o tutte le ricorrenze di "'+recurModal.ev.title+'"?'),
+        React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:10}},
+          React.createElement("button",{onClick:function(){editOnlyThis(recurModal.ev,recurModal.ev.nextDate||today);},style:{background:"#3182ce",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700}},"Solo questa occorrenza"),
+          React.createElement("button",{onClick:function(){editAll(recurModal.ev);},style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700}},"Tutte le ricorrenze"),
+          React.createElement("button",{onClick:function(){setRecurModal(null);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px",cursor:"pointer"}},"Annulla")))),
+    birthdayImport&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:28,maxWidth:520,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)",maxHeight:"80vh",overflowY:"auto"}},
+        React.createElement("h3",{style:{margin:"0 0 8px",fontSize:17,color:"#2d3748"}},"Importa Compleanni"),
+        React.createElement("p",{style:{fontSize:13,color:"#718096",marginBottom:12}},'Incolla i compleanni: "Nome - GG/MM" oppure "Nome - GG/MM/AAAA" (uno per riga)'),
+        React.createElement("textarea",{rows:8,value:birthdayImport.text,onChange:function(e){
+          var txt=e.target.value;
+          var parsed=txt.split("\n").map(function(line){
+            line=line.trim();if(!line)return null;
+            var m=line.match(/^(.+?)\s*[-]\s*(\d{1,2})[\/](\d{1,2})(?:[\/](\d{2,4}))?/);
+            if(!m)return null;
+            var name=m[1].trim();var day=parseInt(m[2]);var month=parseInt(m[3]);
+            var year=m[4]?parseInt(m[4]):2000;if(year<100)year+=1900;
+            if(month>12){var tmp=day;day=month;month=tmp;}
+            var ds=year+"-"+(month<10?"0":"")+month+"-"+(day<10?"0":"")+day;
+            return {name:name,date:ds,day:day,month:month};
+          }).filter(Boolean).sort(function(a,b){return a.month-b.month||a.day-b.day;});
+          setBirthdayImport({text:txt,parsed:parsed});
+        },placeholder:"Mario Rossi - 15/03\nAnna Bianchi - 07/09/1985",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,resize:"vertical",boxSizing:"border-box",marginBottom:12}}),
+        birthdayImport.parsed.length>0&&React.createElement("div",{style:{marginBottom:16}},
+          React.createElement("div",{style:{fontWeight:700,fontSize:13,color:"#4a5568",marginBottom:8}},birthdayImport.parsed.length+" compleanni trovati:"),
+          birthdayImport.parsed.map(function(b,i){return React.createElement("div",{key:i,style:{fontSize:13,padding:"4px 8px",borderRadius:6,background:"#f7fafc",marginBottom:4,display:"flex",gap:8}},
+            React.createElement("span",null,"\uD83C\uDF82"),
+            React.createElement("span",{style:{fontWeight:600,flex:1}},b.name),
+            React.createElement("span",{style:{color:"#718096"}},b.day+" "+MONTHS_SHORT[b.month-1]));})
+        ),
+        React.createElement("div",{style:{display:"flex",gap:8}},
+          React.createElement("button",{onClick:function(){
+            if(!birthdayImport.parsed.length)return;
+            setEvents(function(es){return es.concat(birthdayImport.parsed.map(function(b){return {id:mkId(),title:"Compleanno "+b.name,type:"birthday",date:b.date,dayOfMonth:1,weekDays:[],notes:"",notifyDays:1,excludedDates:[]};}));});
+            setBirthdayImport(null);
+          },style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:700}},"Importa "+birthdayImport.parsed.length+" compleanni"),
+          React.createElement("button",{onClick:function(){setBirthdayImport(null);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px 16px",cursor:"pointer"}},"Annulla")))),
+    showForm&&React.createElement("div",{style:{background:"#fff",borderRadius:12,padding:20,boxShadow:"0 2px 8px rgba(0,0,0,0.08)",marginBottom:20,border:"1px solid #e2e8f0"}},
+      React.createElement("h3",{style:{margin:"0 0 16px",fontSize:16,fontWeight:700,color:"#2d3748"}},editId?"Modifica Evento":"Nuovo Evento"),
+      React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:4}},"Titolo"),React.createElement("input",{value:form.title,onChange:function(e){hfc("title",e.target.value);},placeholder:"Nome evento...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,boxSizing:"border-box"}})),
+      React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:4}},"Tipo"),React.createElement("select",{value:form.type,onChange:function(e){hfc("type",e.target.value);},style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,background:"#fff",boxSizing:"border-box"}},React.createElement("option",{value:"single"},"Evento singolo"),React.createElement("option",{value:"birthday"},"Compleanno (annuale)"),React.createElement("option",{value:"yearly"},"Ricorrenza annuale"),React.createElement("option",{value:"monthly"},"Ricorrenza mensile"),React.createElement("option",{value:"weekly"},"Ricorrenza settimanale"))),
+      React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:6}},"Icona evento"),React.createElement("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},EVENT_ICONS.map(function(ic){return React.createElement("button",{key:ic.k,onClick:function(){hfc("icon",ic.k);},title:ic.k,style:{fontSize:20,padding:"4px 6px",borderRadius:8,border:form.icon===ic.k?"2px solid #667eea":"1px solid #e2e8f0",background:form.icon===ic.k?"#f5f3ff":"#fff",cursor:"pointer"}},ic.e);}))),
+      form.type!=="single"&&React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:6}},"Colore icona ricorrenza"),React.createElement("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},RECUR_COLORS.map(function(col){return React.createElement("div",{key:col,onClick:function(){hfc("eventColor",col);},style:{width:26,height:26,borderRadius:"50%",background:col,cursor:"pointer",border:form.eventColor===col?"3px solid #2d3748":"2px solid #e2e8f0"}});}))),
+      form.type!=="monthly"&&form.type!=="weekly"&&React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:4}},"Data"),React.createElement("input",{type:"date",value:form.date,onChange:function(e){hfc("date",e.target.value);},style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,boxSizing:"border-box"}})),
+      form.type==="single"&&React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:4}},"Fino al (opzionale, più giorni)"),React.createElement("input",{type:"date",value:form.dateEnd||"",min:form.date,onChange:function(e){hfc("dateEnd",e.target.value);},style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,boxSizing:"border-box"}})),
+      form.type==="monthly"&&React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:4}},"Giorno del mese"),React.createElement("input",{type:"number",min:1,max:31,value:form.dayOfMonth,onChange:function(e){hfc("dayOfMonth",+e.target.value);},style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,boxSizing:"border-box"}})),
+      form.type==="weekly"&&React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:8}},"Giorni della settimana"),React.createElement("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},DAYS_IT.map(function(d,i){return React.createElement("button",{key:i,onClick:function(){toggleWD(i);},style:{padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",fontSize:13,fontWeight:600,background:(form.weekDays||[]).indexOf(i)>=0?"#2d3748":"#e2e8f0",color:(form.weekDays||[]).indexOf(i)>=0?"#fff":"#4a5568"}},d.slice(0,3));}))),
+      React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:4}},"Notifica"),React.createElement("select",{value:form.notifyDays,onChange:function(e){hfc("notifyDays",+e.target.value);},style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,background:"#fff",boxSizing:"border-box"}},React.createElement("option",{value:0},"Solo il giorno stesso"),React.createElement("option",{value:1},"1 giorno prima"),React.createElement("option",{value:3},"3 giorni prima"),React.createElement("option",{value:5},"5 giorni prima"),React.createElement("option",{value:10},"10 giorni prima"))),
+      React.createElement("div",{style:{marginBottom:16}},React.createElement("label",{style:{fontSize:13,fontWeight:600,color:"#4a5568",display:"block",marginBottom:4}},"Note"),React.createElement("textarea",{value:form.notes,onChange:function(e){hfc("notes",e.target.value);},rows:2,style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,resize:"vertical",boxSizing:"border-box"}})),
+      React.createElement("div",{style:{display:"flex",gap:8}},React.createElement("button",{onClick:saveForm,style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"8px 20px",cursor:"pointer",fontWeight:700}},"Salva"),React.createElement("button",{onClick:cancelForm,style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer"}},"Annulla"))),
+    calView!=="list"&&React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}},React.createElement("button",{onClick:function(){setCalNavOffset(function(o){return o-1;});},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:16}},"<"),React.createElement("div",{style:{fontWeight:700,fontSize:14,color:"#2d3748"}},calView==="week"?(weekStart.getDate()+" "+MONTHS_FULL[weekStart.getMonth()]+" - "+(function(){var e=new Date(weekStart.getTime()+6*864e5);return e.getDate()+" "+MONTHS_FULL[e.getMonth()];})()):( MONTHS_FULL[monthRef.getMonth()]+" "+monthRef.getFullYear())),React.createElement("div",{style:{display:"flex",gap:6}},React.createElement("button",{onClick:function(){setCalNavOffset(function(o){return o+1;});},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:16}},">"),React.createElement("button",{onClick:function(){setCalNavOffset(0);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:600}},"Oggi"))),
+    calView==="week"&&React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:16}},DAYS_SHORT.map(function(d){return React.createElement("div",{key:d,style:{textAlign:"center",fontWeight:700,fontSize:11,color:"#718096",padding:"4px 0",background:"#f7fafc",borderRadius:4}},d);}),getWeekGrid().map(function(dt,i){var ds=dt.toISOString().slice(0,10);var isT=ds===today;var evs=eventsOnDate(dt);return React.createElement("div",{key:i,style:{minHeight:90,border:"1px solid #e2e8f0",borderRadius:8,padding:"4px 3px",background:isT?"#ebf8ff":"#fff"}},React.createElement("div",{style:{fontSize:12,fontWeight:isT?800:400,color:isT?"#3182ce":"#718096",marginBottom:3}},DAYS_SHORT[i]+" "+dt.getDate()),evs.map(function(ev,ei){var ico=EVENT_ICONS.find(function(x){return x.k===ev.icon;});var evC=ev.eventColor||getEventColor(events,ev.id);return React.createElement("div",{key:ei,onClick:function(){openEdit(Object.assign({},ev));},title:ev.title,style:{fontSize:10,background:evC,color:"#fff",borderRadius:4,padding:"2px 4px",marginBottom:2,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}},(ico?ico.e+" ":"")+ev.title);}));})),
+    calView==="month"&&React.createElement("div",{style:{overflowX:"auto",marginBottom:16}},React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,minWidth:560}},DAYS_SHORT.map(function(d){return React.createElement("div",{key:d,style:{textAlign:"center",fontWeight:700,fontSize:11,color:"#718096",padding:"6px 2px",background:"#f7fafc"}},d);}),monthGrid.map(function(dt,i){var ds=dt.toISOString().slice(0,10);var isT=ds===today;var inM=dt.getMonth()===monthRef.getMonth();var evs=eventsOnDate(dt);return React.createElement("div",{key:i,style:{minHeight:64,border:"1px solid #e8ecef",padding:"3px 3px",background:isT?"#ebf8ff":inM?"#fff":"#f9fafb"}},React.createElement("div",{style:{fontSize:11,fontWeight:isT?800:400,color:isT?"#3182ce":inM?"#4a5568":"#c0c9d0",marginBottom:2}},dt.getDate()),evs.slice(0,2).map(function(ev,ei){var ico=EVENT_ICONS.find(function(x){return x.k===ev.icon;});var evC=ev.eventColor||getEventColor(events,ev.id);return React.createElement("div",{key:ei,onClick:function(){openEdit(Object.assign({},ev));},title:ev.title,style:{fontSize:9,background:evC,color:"#fff",borderRadius:3,padding:"1px 3px",marginBottom:1,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}},(ico?ico.e+" ":"")+ev.title);}),evs.length>2&&React.createElement("div",{style:{fontSize:9,color:"#718096"}},"+"+(evs.length-2)+" altri"));})),React.createElement("div",{style:{height:4}})),
+    allUpcoming.length===0&&!showForm&&React.createElement("div",{style:{textAlign:"center",padding:40,color:"#a0aec0"}},"Nessun evento nei prossimi 24 mesi."),
+    allUpcoming.map(function(ev,i){
+      var daysAway=Math.round((new Date(ev.nextDate+"T00:00:00")-new Date(today+"T00:00:00"))/864e5);
+      var isToday=daysAway===0;
+      var evColor=getEvColor(ev);
+      var prevEv=allUpcoming[i-1];
+      var gwk=function(d){var dt=new Date(d+"T00:00:00");var dw=dt.getDay()||7;dt.setDate(dt.getDate()-dw+1);return dt.toISOString().slice(0,10);};
+      var newWeek=i>0&&gwk(ev.nextDate)!==gwk(prevEv.nextDate);
+      return React.createElement("div",{key:ev.id+"_"+i,style:{display:"flex",alignItems:"flex-start",gap:12,marginBottom:10,marginTop:newWeek?22:0,background:"#fff",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",border:isToday?"2px solid #e53e3e":"1px solid #e2e8f0"}},
+        React.createElement("div",{style:{fontSize:22,flexShrink:0,color:ev.type==="birthday"?"inherit":(ev.eventColor||evColor)}},(function(){if(ev.type==="birthday")return "\uD83C\uDF82";var ic=EVENT_ICONS.find(function(x){return x.k===(ev.icon||"calendar");});return ic?ic.e:"\uD83D\uDCC5";})()),
+        React.createElement("div",{style:{flex:1,minWidth:0}},
+          React.createElement("div",{style:{fontWeight:700,fontSize:15,color:"#2d3748"}},ev.title),
+          React.createElement("div",{style:{fontSize:12,color:"#718096",marginTop:2}},
+            typeLabel[ev.type]+" - "+ev.nextDate,
+            isToday&&React.createElement("span",{style:{marginLeft:8,background:"#fed7d7",color:"#c53030",borderRadius:6,padding:"1px 8px",fontWeight:700}},"OGGI"),
+            daysAway>0&&React.createElement("span",{style:{marginLeft:8,color:"#667eea",fontWeight:600}},"tra "+daysAway+"gg")),
+          ev.notes&&React.createElement("div",{style:{fontSize:12,color:"#718096",marginTop:2,fontStyle:"italic"}},ev.notes)),
+        React.createElement("div",{style:{display:"flex",gap:6,flexShrink:0,alignItems:"center"}},
+          React.createElement("button",{onClick:function(){addToTodo(ev);},title:"Aggiungi a To Do",style:{background:"#f0fff4",border:"1px solid #9ae6b4",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:18,color:"#38a169",lineHeight:1}},"\u27A1"),
+          React.createElement("button",{onClick:function(){setNoteTarget(ev.id);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:12,fontWeight:600}},"nota"),
+          React.createElement("button",{onClick:function(){openEdit(Object.assign({},ev));},style:{background:"#ebf8ff",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:12,fontWeight:600,color:"#3182ce"}},"mod"),
+          React.createElement("button",{onClick:function(){askDelete(Object.assign({},ev));},style:{background:"#fff5f5",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e53e3e"}},"x")));}),
+    pastEvents.length>0&&React.createElement("div",{style:{marginTop:24}},
+      React.createElement("div",{onClick:function(){setShowPast(function(v){return !v;});},style:{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"10px 14px",background:"#f7fafc",borderRadius:10,border:"1px solid #e2e8f0",marginBottom:showPast?12:0}},
+        React.createElement("span",{style:{fontSize:14,fontWeight:700,color:"#718096"}},(showPast?"\u25B2":"\u25BC")+" Eventi scaduti ("+pastEvents.length+")"),
+        React.createElement("span",{style:{fontSize:12,color:"#a0aec0",marginLeft:4}},"clicca per "+(showPast?"nascondere":"mostrare"))),
+      showPast&&pastEvents.map(function(ev,i){
+        return React.createElement("div",{key:ev.id+"_past_"+i,style:{display:"flex",alignItems:"flex-start",gap:12,marginBottom:8,background:"#fffaf0",borderRadius:12,padding:"10px 14px",border:"1px solid #fbd38d",opacity:0.88}},
+          React.createElement("div",{style:{fontSize:20,flexShrink:0}},"\u23F0"),
+          React.createElement("div",{style:{flex:1,minWidth:0}},
+            React.createElement("div",{style:{fontWeight:700,fontSize:14,color:"#744210"}},ev.title),
+            React.createElement("div",{style:{fontSize:12,color:"#975a16"}},"Scaduto: "+ev.date)),
+          React.createElement("div",{style:{display:"flex",gap:6,flexShrink:0}},
+            React.createElement("button",{onClick:function(){setForm(Object.assign({},ev,{weekDays:[]}));setEditId(ev.id);setShowForm(true);},style:{background:"#ebf8ff",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:12,fontWeight:600,color:"#3182ce"}},"cambia data"),
+            React.createElement("button",{onClick:function(){addToTodo(ev);},title:"Aggiungi a To Do",style:{background:"#f0fff4",border:"1px solid #9ae6b4",borderRadius:8,padding:"4px 8px",cursor:"pointer",fontSize:16,color:"#38a169"}},"\u27A1"),
+            React.createElement("button",{onClick:function(){setEvents(function(es){return es.filter(function(e){return e.id!==ev.id;});});},style:{background:"#fff5f5",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:12,fontWeight:600,color:"#e53e3e"}},"x")));})),
+    noteTarget&&noteItem&&React.createElement(NoteModal,{title:"Nota evento",notes:noteItem.notes||"",onSave:function(note){saveNote(noteTarget,note);},onClose:function(){setNoteTarget(null);}}))
+}
+function ObjModal(props){
+  var obj=props.obj;
+  var _s=useState(JSON.parse(JSON.stringify(obj)));var lo=_s[0];var setLo=_s[1];
+  var _s2=useState("");var newTask=_s2[0];var setNewTask=_s2[1];
+  var _s3=useState(false);var editName=_s3[0];var setEditName=_s3[1];
+  var _s4=useState(false);var confirmDel=_s4[0];var setConfirmDel=_s4[1];
+  var c=colMap[lo.color]||"#718096";var done=lo.tasks.filter(function(t){return t.done;}).length;
+  function tog(i){var t=lo.tasks.slice();t[i]=Object.assign({},t[i],{done:!t[i].done});setLo(Object.assign({},lo,{tasks:t}));}
+  function addT(){if(!newTask.trim())return;setLo(Object.assign({},lo,{tasks:lo.tasks.concat([{t:newTask.trim(),done:false}])}));setNewTask("");}
+  function remT(i){var t=lo.tasks.slice();t.splice(i,1);setLo(Object.assign({},lo,{tasks:t}));}
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16},onClick:props.onClose},
+    React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:28,maxWidth:580,width:"100%",maxHeight:"88vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"},onClick:function(e){e.stopPropagation();}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}},
+        React.createElement("div",{style:{flex:1}},
+          React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}},
+            React.createElement("div",{style:{background:c,color:"#fff",borderRadius:8,padding:"4px 14px",fontSize:14,fontWeight:700}},lo.progress+"%"),
+            Object.entries(colMap).map(function(e2){return React.createElement("div",{key:e2[0],onClick:function(){setLo(Object.assign({},lo,{color:e2[0]}));},style:{width:18,height:18,borderRadius:"50%",background:e2[1],cursor:"pointer",border:lo.color===e2[0]?"3px solid #2d3748":"2px solid #e2e8f0"},title:colLabels[e2[0]]});})),
+          editName?React.createElement("textarea",{value:lo.name,onChange:function(e){setLo(Object.assign({},lo,{name:e.target.value}));},onBlur:function(){setEditName(false);},autoFocus:true,style:{fontSize:20,fontWeight:700,border:"2px solid "+c,borderRadius:8,padding:"4px 8px",width:"100%",resize:"none",minHeight:52,boxSizing:"border-box"}}):React.createElement("h2",{onClick:function(){setEditName(true);},style:{margin:0,color:"#2d3748",fontSize:20,cursor:"pointer"}},lo.name,React.createElement("span",{style:{fontSize:13,color:"#cbd5e0",marginLeft:6}},"modifica"))),
+        React.createElement("div",{style:{display:"flex",gap:8,marginLeft:12,flexShrink:0}},
+          React.createElement("button",{onClick:function(){props.onUpdate(lo);props.onClose();},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontWeight:700}},"Salva"),
+          React.createElement("button",{onClick:props.onClose,style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#718096"}},"X"))),
+      React.createElement("div",{style:{marginBottom:16}},React.createElement("label",{style:{fontSize:13,fontWeight:700,color:"#4a5568"}},"Avanzamento: "+lo.progress+"%"),React.createElement("input",{type:"range",min:0,max:100,value:lo.progress,onChange:function(e){setLo(Object.assign({},lo,{progress:+e.target.value}));},style:{width:"100%",accentColor:c,marginTop:4}})),
+      [["cosa","COSA"],["perche","PERCHE"],["notes","NOTE PERSONALI"]].map(function(pair){return React.createElement("div",{key:pair[0],style:{marginBottom:14}},React.createElement("div",{style:{fontWeight:700,color:c,marginBottom:4,fontSize:12,textTransform:"uppercase",letterSpacing:1}},pair[1]),React.createElement("textarea",{value:lo[pair[0]],onChange:function(e){var u={};u[pair[0]]=e.target.value;setLo(Object.assign({},lo,u));},placeholder:pair[0]==="notes"?"Aggiungi note...":"",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:8,fontSize:14,resize:"vertical",minHeight:pair[0]==="notes"?50:60,boxSizing:"border-box"}}));}),
+      React.createElement("div",null,
+        React.createElement("div",{style:{fontWeight:700,color:c,marginBottom:10,fontSize:12,textTransform:"uppercase",letterSpacing:1}},"TASK ("+done+"/"+lo.tasks.length+")"),
+        React.createElement(DragList,{items:lo.tasks.map(function(tk,i){return Object.assign({},tk,{id:"tk"+i});}),onReorder:function(nt){setLo(Object.assign({},lo,{tasks:nt.map(function(x){var r=Object.assign({},x);delete r.id;return r;})}));},renderItem:function(tk,i){return React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8,background:"#f7fafc",borderRadius:8,padding:"8px 10px"}},React.createElement("span",{style:{color:"#cbd5e0",cursor:"grab",fontSize:14,flexShrink:0}},"::"),React.createElement("input",{type:"checkbox",checked:tk.done,onChange:function(){tog(i);},style:{accentColor:c,width:15,height:15,flexShrink:0}}),React.createElement("span",{style:{flex:1,fontSize:14,color:tk.done?"#a0aec0":"#2d3748",textDecoration:tk.done?"line-through":"none"}},tk.t),React.createElement("button",{onClick:function(){remT(i);},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:16,flexShrink:0}},"x"));}}),
+        React.createElement("div",{style:{display:"flex",gap:8,marginTop:10}},React.createElement("input",{value:newTask,onChange:function(e){setNewTask(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")addT();},placeholder:"Nuovo task...",style:{flex:1,border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 10px",fontSize:14}}),React.createElement("button",{onClick:addT,style:{background:c,color:"#fff",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontWeight:700,fontSize:18}},"+")),
+      React.createElement("div",{style:{marginTop:24,borderTop:"1px solid #fee2e2",paddingTop:16}},!confirmDel?React.createElement("button",{onClick:function(){setConfirmDel(true);},style:{background:"none",border:"1px solid #fc8181",color:"#e53e3e",borderRadius:8,padding:"6px 16px",cursor:"pointer",fontSize:13}},"Elimina scheda"):React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10}},React.createElement("span",{style:{fontSize:13,color:"#e53e3e",fontWeight:600}},"Sicuro?"),React.createElement("button",{onClick:function(){props.onDelete(obj.id);props.onClose();},style:{background:"#e53e3e",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontWeight:700}},"Si, elimina"),React.createElement("button",{onClick:function(){setConfirmDel(false);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"6px 12px",cursor:"pointer"}},"Annulla"))))));
+}
+
+function ObjCard(props){var obj=props.obj;var c=colMap[obj.color]||"#718096";return React.createElement("div",{onClick:function(){props.onClick(obj);},style:{cursor:"pointer",border:"2px solid "+c,borderRadius:12,padding:14,background:props.isOver?"#ebf8ff":"#fff",boxShadow:"0 2px 8px rgba(0,0,0,0.07)",transition:"transform 0.15s"},onMouseEnter:function(e){e.currentTarget.style.transform="translateY(-3px)";},onMouseLeave:function(e){e.currentTarget.style.transform="";}},React.createElement("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:6}},React.createElement("div",{style:{background:c,color:"#fff",borderRadius:6,padding:"2px 10px",fontSize:13,fontWeight:700}},obj.progress+"%"),obj.notes&&obj.notes.trim()?React.createElement("span",{style:{fontSize:12,color:"#667eea",fontWeight:600}},"note"):null),React.createElement("div",{style:{fontWeight:700,fontSize:15,color:"#2d3748",whiteSpace:"pre-line",marginBottom:8,lineHeight:1.3}},obj.name),React.createElement(PBar,{value:obj.progress,color:obj.color}),React.createElement("div",{style:{fontSize:12,color:"#718096"}},obj.tasks.filter(function(t){return t.done;}).length+"/"+obj.tasks.length+" task"));}
+
+function NewCardForm(props){var _s=useState("");var name=_s[0];var setName=_s[1];var _s2=useState("blue");var color=_s2[0];var setColor=_s2[1];return React.createElement("div",{style:{border:"2px dashed #cbd5e0",borderRadius:12,padding:16,background:"#f7fafc"}},React.createElement("div",{style:{fontWeight:700,fontSize:14,color:"#4a5568",marginBottom:12}},"Nuova scheda"),React.createElement("input",{autoFocus:true,value:name,onChange:function(e){setName(e.target.value);},onKeyDown:function(e){if(e.key==="Enter"&&name.trim())props.onAdd(name.trim(),color);},placeholder:"Nome scheda...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,marginBottom:10,boxSizing:"border-box"}}),React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center",marginBottom:12}},React.createElement("span",{style:{fontSize:13,color:"#718096"}},"Colore:"),Object.entries(colMap).map(function(e){return React.createElement("div",{key:e[0],onClick:function(){setColor(e[0]);},style:{width:22,height:22,borderRadius:"50%",background:e[1],cursor:"pointer",border:color===e[0]?"3px solid #2d3748":"2px solid #e2e8f0"}});})),React.createElement("div",{style:{display:"flex",gap:8}},React.createElement("button",{onClick:function(){if(name.trim())props.onAdd(name.trim(),color);},style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"7px 18px",cursor:"pointer",fontWeight:700}},"Crea"),React.createElement("button",{onClick:props.onCancel,style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer"}},"Annulla")));}
+
+function Top10(props){
+  var objectives=props.objectives;var setObjectives=props.setObjectives;
+  var _s=useState(null);var editing=_s[0];var setEditing=_s[1];
+  var _s2=useState("");var val=_s2[0];var setVal=_s2[1];
+  var _s3=useState(null);var noteIdx=_s3[0];var setNoteIdx=_s3[1];
+  function saveText(i){setObjectives(function(o){return o.map(function(x,j){return j===i?Object.assign({},x,{text:val}):x;});});setEditing(null);}
+  function saveNote(i,note){setObjectives(function(o){return o.map(function(x,j){return j===i?Object.assign({},x,{notes:note}):x;});});}
+  var noteItem=noteIdx!==null?objectives[noteIdx]:null;
+  return React.createElement("div",{style:{maxWidth:700,margin:"0 auto",padding:"24px 20px"}},
+    React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:6}},"I Miei 10 Obiettivi Principali"),
+    React.createElement("p",{style:{color:"#718096",marginBottom:24,fontSize:14}},"Trascina per riordinare. Clicca sul testo per modificare."),
+    React.createElement(DragList,{items:objectives.map(function(o,i){return Object.assign({},o,{id:"obj"+i});}),onReorder:function(ni){setObjectives(ni.map(function(x){var r=Object.assign({},x);delete r.id;return r;}));},renderItem:function(o,i){
+      return React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:12,background:"#fff",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",border:"1px solid #e2e8f0"}},
+        React.createElement("span",{style:{color:"#cbd5e0",cursor:"grab",fontSize:14,flexShrink:0}},"::"),
+        React.createElement("div",{style:{width:32,height:32,borderRadius:"50%",background:o.text?"linear-gradient(135deg,#667eea,#764ba2)":"#e2e8f0",color:o.text?"#fff":"#a0aec0",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:15,flexShrink:0}},i+1),
+        editing===i?React.createElement("div",{style:{flex:1,display:"flex",gap:8}},React.createElement("input",{autoFocus:true,value:val,onChange:function(e){setVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")saveText(i);if(e.key==="Escape")setEditing(null);},style:{flex:1,border:"2px solid #667eea",borderRadius:8,padding:"6px 10px",fontSize:15}}),React.createElement("button",{onClick:function(){saveText(i);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontWeight:700}},"OK"),React.createElement("button",{onClick:function(){setEditing(null);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"6px 12px",cursor:"pointer"}},"No")):React.createElement("div",{style:{flex:1,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}},React.createElement("span",{onClick:function(){setEditing(i);setVal(o.text);},style:{flex:1,fontSize:15,color:o.text?"#2d3748":"#a0aec0",fontStyle:o.text?"normal":"italic",cursor:"pointer"}},o.text||"Clicca per aggiungere..."),React.createElement("button",{onClick:function(){setNoteIdx(i);},style:{background:o.notes?"#667eea":"#e2e8f0",color:o.notes?"#fff":"#718096",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}},o.notes?"note":"+ nota")));}
+    }),
+    noteIdx!==null&&noteItem&&React.createElement(NoteModal,{title:noteItem.text||("Obiettivo "+(noteIdx+1)),notes:noteItem.notes||"",onSave:function(note){saveNote(noteIdx,note);},onClose:function(){setNoteIdx(null);}}));
+}
+
+function GoalsSection(props){
+  var goals=props.goals;var setGoals=props.setGoals;
+  var _s=useState("personale");var tab=_s[0];var setTab=_s[1];
+  var _s2=useState({personale:"",lavorativa:"",artistica:""});var ng=_s2[0];var setNg=_s2[1];
+  var _s3=useState("breve");var nt=_s3[0];var setNt=_s3[1];
+  var _s4=useState(null);var noteTarget=_s4[0];var setNoteTarget=_s4[1];
+  var _s5=useState(null);var editTarget=_s5[0];var setEditTarget=_s5[1];
+  var _s6=useState("");var editVal=_s6[0];var setEditVal=_s6[1];
+  var _s7=useState(null);var prioTarget=_s7[0];var setPrioTarget=_s7[1];
+  var _s8=useState(null);var newPrio=_s8[0];var setNewPrio=_s8[1];
+  var terms=["breve","medio","lungo"];
+  var tl={breve:"Breve termine",medio:"Medio termine",lungo:"Lungo termine"};
+  var tc={breve:"#e53e3e",medio:"#d69e2e",lungo:"#38a169"};
+  var cl={personale:"Personale",lavorativa:"Lavorativa",artistica:"Artistica"};
+  function add(){var v=ng[tab].trim();if(!v)return;setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][nt]=(n[tab][nt]||[]).concat([{text:v,notes:"",prio:newPrio}]);return n;});setNg(function(ng2){var r=Object.assign({},ng2);r[tab]="";return r;});setNewPrio(null);}
+  function rem(term,i){setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term].splice(i,1);return n;});}
+  function reorder(term,na){setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term]=na;return n;});}
+  function saveItemText(term,i,txt){setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term][i]=Object.assign({},n[tab][term][i],{text:txt});return n;});setEditTarget(null);}
+  function saveItemNote(term,i,note){setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term][i]=Object.assign({},n[tab][term][i],{notes:note});return n;});}
+  function saveItemPrio(term,i,prio){setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term][i]=Object.assign({},n[tab][term][i],{prio:prio});return n;});}
+  var curNote=noteTarget?(goals[tab][noteTarget[0]]||[])[noteTarget[1]]:null;
+  var curPrio=prioTarget?(goals[tab][prioTarget[0]]||[])[prioTarget[1]]:null;
+  return React.createElement("div",{style:{maxWidth:800,margin:"0 auto",padding:"24px 20px"}},
+    React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:16}},"Obiettivi per Area"),
+    React.createElement("div",{style:{display:"flex",gap:6,marginBottom:20,flexWrap:"wrap"}},["personale","lavorativa","artistica"].map(function(k){return React.createElement("button",{key:k,onClick:function(){setTab(k);},style:{padding:"8px 18px",border:"none",borderRadius:20,cursor:"pointer",fontWeight:700,fontSize:14,background:tab===k?"#2d3748":"#e2e8f0",color:tab===k?"#fff":"#4a5568"}},cl[k]);})),
+    terms.map(function(term){
+      var items=(goals[tab][term]||[]).map(function(g,i){return Object.assign({},g,{id:"g"+term+i});});
+      return React.createElement("div",{key:term,style:{marginBottom:24}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:10}},React.createElement("div",{style:{width:10,height:10,borderRadius:"50%",background:tc[term]}}),React.createElement("span",{style:{fontWeight:700,fontSize:16,color:"#2d3748"}},tl[term]),React.createElement("span",{style:{background:"#e2e8f0",borderRadius:20,padding:"1px 10px",fontSize:12,color:"#718096"}},items.length)),
+        items.length===0&&React.createElement("div",{style:{color:"#a0aec0",fontSize:14,fontStyle:"italic",marginBottom:8}},"Nessun obiettivo ancora"),
+        React.createElement(DragList,{items:items,onReorder:function(ni){reorder(term,ni.map(function(x){var r=Object.assign({},x);delete r.id;return r;}));},renderItem:function(item,i){
+          return React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:8,background:"#fff",borderRadius:10,padding:"10px 14px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",borderLeft:"4px solid "+tc[term]}},
+            React.createElement("span",{style:{color:"#cbd5e0",cursor:"grab",fontSize:14,flexShrink:0}},"::"),
+            React.createElement(PrioStar,{prio:item.prio,onClick:function(){setPrioTarget([term,i]);}}),
+            editTarget&&editTarget[0]===term&&editTarget[1]===i
+              ?React.createElement("div",{style:{flex:1,display:"flex",gap:8}},React.createElement("input",{autoFocus:true,value:editVal,onChange:function(e){setEditVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")saveItemText(term,i,editVal);if(e.key==="Escape")setEditTarget(null);},style:{flex:1,border:"2px solid #667eea",borderRadius:8,padding:"5px 8px",fontSize:14}}),React.createElement("button",{onClick:function(){saveItemText(term,i,editVal);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}},"OK"))
+              :React.createElement("span",{onClick:function(){setEditTarget([term,i]);setEditVal(item.text);},style:{flex:1,fontSize:14,color:"#2d3748",cursor:"pointer"}},item.text),
+            React.createElement("button",{onClick:function(){setNoteTarget([term,i]);},style:{background:item.notes?"#667eea":"#e2e8f0",color:item.notes?"#fff":"#718096",border:"none",borderRadius:8,padding:"3px 10px",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}},item.notes?"note":"+ nota"),
+            React.createElement("button",{onClick:function(){if(props.onAddTodo)props.onAddTodo({id:mkId(),text:item.text,done:false,notes:item.notes||""});rem(term,i);},title:"Aggiungi a To Do e rimuovi",style:{background:"#f0fff4",border:"1px solid #9ae6b4",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:16,color:"#38a169",lineHeight:1,flexShrink:0}},"➡"),
+            React.createElement("button",{onClick:function(){rem(term,i);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",cursor:"pointer",fontSize:13,fontWeight:700,borderRadius:8,padding:"3px 10px",flexShrink:0,marginLeft:4}},"x"));}
+        }));}),
+    React.createElement("div",{style:{background:"#f7fafc",borderRadius:12,padding:16,border:"1px dashed #cbd5e0"}},
+      React.createElement("div",{style:{fontWeight:700,fontSize:14,color:"#4a5568",marginBottom:10}},"+ Aggiungi per "+cl[tab]),
+      React.createElement("div",{style:{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}},
+        React.createElement("select",{value:nt,onChange:function(e){setNt(e.target.value);},style:{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,background:"#fff"}},terms.map(function(t){return React.createElement("option",{key:t,value:t},tl[t]);})),
+        React.createElement("input",{value:ng[tab],onChange:function(e){var r=Object.assign({},ng);r[tab]=e.target.value;setNg(r);},onKeyDown:function(e){if(e.key==="Enter")add();},placeholder:"Descrivi l obiettivo...",style:{flex:1,minWidth:180,border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 12px",fontSize:14}}),
+        React.createElement("button",{onClick:add,style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontWeight:700}},"Aggiungi")),
+      React.createElement("div",{style:{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}},
+        React.createElement("span",{style:{fontSize:13,color:"#718096"}},"Priorita:"),
+        PRIO_OPTS.map(function(o){return React.createElement("div",{key:o.v||"none",onClick:function(){setNewPrio(o.v);},style:{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:20,cursor:"pointer",border:newPrio===o.v?"2px solid #667eea":"1px solid #e2e8f0",background:newPrio===o.v?"#f5f3ff":"#fff",fontSize:13}},React.createElement("span",{style:{color:o.color}},"★"),o.label);}))),
+    noteTarget&&curNote&&React.createElement(NoteModal,{title:curNote.text||"Obiettivo",notes:curNote.notes||"",onSave:function(note){saveItemNote(noteTarget[0],noteTarget[1],note);},onClose:function(){setNoteTarget(null);}}),
+    prioTarget&&curPrio!==undefined&&React.createElement(PrioModal,{current:curPrio&&curPrio.prio?curPrio.prio:null,onSave:function(prio){saveItemPrio(prioTarget[0],prioTarget[1],prio);},onClose:function(){setPrioTarget(null);}}));
+}
+
+function Dashboard(props){
+  var data=props.data;var areas=["personale","lavorativa","artistica"];var al={personale:"Personale",lavorativa:"Lavorativa",artistica:"Artistica"};var ac={personale:"#3182ce",lavorativa:"#38a169",artistica:"#d69e2e"};var ack={personale:"blue",lavorativa:"green",artistica:"gold"};
+  return React.createElement("div",{style:{maxWidth:900,margin:"0 auto",padding:"24px 20px"}},React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:20}},"Dashboard Generale"),React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:20}},areas.map(function(area){var objs=data[area];var avg=Math.round(objs.reduce(function(s,o){return s+o.progress;},0)/objs.length);var tot=objs.reduce(function(s,o){return s+o.tasks.length;},0);var don=objs.reduce(function(s,o){return s+o.tasks.filter(function(t){return t.done;}).length;},0);return React.createElement("div",{key:area,style:{background:"#fff",borderRadius:16,padding:20,boxShadow:"0 2px 12px rgba(0,0,0,0.08)",borderTop:"4px solid "+ac[area]}},React.createElement("div",{style:{fontSize:18,fontWeight:800,color:"#2d3748",marginBottom:14}},al[area]),React.createElement("div",{style:{fontSize:36,fontWeight:900,color:ac[area],marginBottom:4}},avg+"%"),React.createElement("div",{style:{fontSize:13,color:"#718096",marginBottom:12}},"avanzamento medio"),React.createElement(PBar,{value:avg,color:ack[area]}),React.createElement("div",{style:{fontSize:13,color:"#4a5568",marginTop:8,marginBottom:14}},don+"/"+tot+" task completati"),objs.map(function(o){return React.createElement("div",{key:o.id,style:{display:"flex",alignItems:"center",gap:8,marginBottom:6}},React.createElement("div",{style:{fontSize:11,color:"#718096",width:110,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0}},o.name.replace("\n"," ")),React.createElement("div",{style:{flex:1,background:"#e2e8f0",borderRadius:4,height:6,overflow:"hidden"}},React.createElement("div",{style:{width:o.progress+"%",background:colMap[o.color]||"#718096",height:"100%",borderRadius:4}})),React.createElement("div",{style:{fontSize:11,color:"#718096",width:30,textAlign:"right"}},o.progress+"%"));}));})));
+}
+
+function AreaView(props){
+  var areaKey=props.areaKey;var data=props.data;var setData=props.setData;var onAddTodo=props.onAddTodo;
+  var _s=useState(null);var selected=_s[0];var setSelected=_s[1];
+  var _s2=useState(false);var showNew=_s2[0];var setShowNew=_s2[1];
+  var objs=data[areaKey];var avg=(objs.length>0)?Math.round(objs.reduce(function(s,o){return s+o.progress;},0)/objs.length):0;var tot=objs.reduce(function(s,o){return s+o.tasks.length;},0);var don=objs.reduce(function(s,o){return s+o.tasks.filter(function(t){return t.done;}).length;},0);
+  function upd(u){setData(function(p){var n=Object.assign({},p);n[areaKey]=p[areaKey].map(function(o){return o.id===u.id?Object.assign({},u):o;});return n;});}
+  function del(id){setData(function(p){var n=Object.assign({},p);n[areaKey]=p[areaKey].filter(function(o){return o.id!==id;});return n;});}
+  function add(name,color){setData(function(p){var n=Object.assign({},p);n[areaKey]=p[areaKey].concat([newObj(name,color)]);return n;});setShowNew(false);}
+  function reorder(no){setData(function(p){var n=Object.assign({},p);n[areaKey]=no;return n;});}
+  var selObj=selected?data[areaKey].find(function(o){return o.id===selected.id;})||selected:null;
+  return React.createElement(React.Fragment,null,
+    React.createElement("div",{style:{background:"#f7fafc",borderBottom:"1px solid #e2e8f0",padding:"12px 24px"}},React.createElement("div",{style:{maxWidth:960,margin:"0 auto",display:"flex",gap:20,flexWrap:"wrap",alignItems:"center"}},React.createElement("div",{style:{fontSize:13,color:"#4a5568"}},React.createElement("span",{style:{fontWeight:700,fontSize:20,color:"#2d3748"}},avg+"%")," media"),React.createElement("div",{style:{fontSize:13,color:"#4a5568"}},React.createElement("span",{style:{fontWeight:700,color:"#2d3748"}},don+"/"+tot)," task"),React.createElement("div",{style:{fontSize:13,color:"#4a5568"}},React.createElement("span",{style:{fontWeight:700,color:"#2d3748"}},objs.length)," obiettivi"))),
+    React.createElement("div",{style:{maxWidth:960,margin:"0 auto",padding:"24px 20px"}},React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:16}},React.createElement(DragList,{items:objs,onReorder:reorder,renderItem:function(obj,i,isOver){return React.createElement(ObjCard,{obj:obj,onClick:setSelected,isOver:isOver});}}),showNew?React.createElement(NewCardForm,{onAdd:add,onCancel:function(){setShowNew(false);}}):React.createElement("div",{onClick:function(){setShowNew(true);},style:{border:"2px dashed #cbd5e0",borderRadius:12,padding:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#a0aec0",minHeight:120},onMouseEnter:function(e){e.currentTarget.style.borderColor="#667eea";e.currentTarget.style.color="#667eea";},onMouseLeave:function(e){e.currentTarget.style.borderColor="#cbd5e0";e.currentTarget.style.color="#a0aec0";}},React.createElement("div",{style:{fontSize:28,marginBottom:6}},"+"),React.createElement("div",{style:{fontSize:13,fontWeight:600}},"Nuova scheda")))),
+    selObj&&React.createElement(ObjModal,{obj:selObj,onClose:function(){setSelected(null);},onUpdate:function(o){upd(o);setSelected(null);},onDelete:function(id){del(id);setSelected(null);}}));
+}
+
+function TabRow(props){
+  var k=props.k;var settings=props.settings;var setSettings=props.setSettings;
+  var _s=useState(false);var editLabel=_s[0];var setEditLabel=_s[1];
+  var cfg=settings.tabs[k]||{};var defaultLabel=ALL_TABS.find(function(t){return t.k===k;})?ALL_TABS.find(function(t){return t.k===k;}).l:k;var currentLabel=cfg.label||defaultLabel;
+  var _s2=useState(currentLabel);var labelVal=_s2[0];var setLabelVal=_s2[1];
+  function setTabLabel(label){setSettings(function(s){var t=Object.assign({},s.tabs);t[k]=Object.assign({},t[k],{label:label});return Object.assign({},s,{tabs:t});});}
+  function setTabHeaderTheme(theme){setSettings(function(s){var t=Object.assign({},s.tabs);t[k]=Object.assign({},t[k],{headerTheme:theme});return Object.assign({},s,{tabs:t});});}
+  function setTabBodyTheme(theme){setSettings(function(s){var t=Object.assign({},s.tabs);t[k]=Object.assign({},t[k],{bodyTheme:theme});return Object.assign({},s,{tabs:t});});}
+  function toggleVisible(){setSettings(function(s){var t=Object.assign({},s.tabs);t[k]=Object.assign({},t[k],{visible:cfg.visible===false?true:false});return Object.assign({},s,{tabs:t});});}
+  function setHome(){var tabs={};Object.keys(settings.tabs).forEach(function(key){tabs[key]=Object.assign({},settings.tabs[key],{home:key===k});});setSettings(function(s){return Object.assign({},s,{tabs:tabs});});}
+  return React.createElement("div",{style:{marginBottom:10,background:"#f7fafc",borderRadius:12,padding:14,border:"1px solid #e2e8f0"}},
+    React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8}},
+      editLabel
+        ?React.createElement(React.Fragment,null,React.createElement("input",{autoFocus:true,value:labelVal,onChange:function(e){setLabelVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter"){setTabLabel(labelVal);setEditLabel(false);}if(e.key==="Escape")setEditLabel(false);},style:{flex:1,border:"2px solid #667eea",borderRadius:8,padding:"4px 8px",fontSize:14}}),React.createElement("button",{onClick:function(){setTabLabel(labelVal);setEditLabel(false);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontWeight:700,fontSize:12}},"OK"))
+        :React.createElement(React.Fragment,null,React.createElement("div",{style:{flex:1,fontWeight:700,fontSize:14,color:"#2d3748"}},currentLabel),React.createElement("button",{onClick:function(){setEditLabel(true);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:11,color:"#718096"}},"rinomina"))),
+    React.createElement("div",{style:{display:"flex",gap:12,marginBottom:10}},
+      React.createElement("label",{style:{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"#718096",cursor:"pointer"}},React.createElement("input",{type:"checkbox",checked:cfg.visible!==false,onChange:toggleVisible,style:{accentColor:"#3182ce"}}),"Visibile"),
+      React.createElement("label",{style:{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"#667eea",cursor:"pointer"}},React.createElement("input",{type:"radio",name:"homeTab",checked:!!cfg.home,onChange:setHome,style:{accentColor:"#667eea"}}),"Home")),
+    React.createElement("div",{style:{fontSize:12,fontWeight:600,color:"#4a5568",marginBottom:2}},"Tema Header"),
+    React.createElement(ThemePicker,{current:cfg.headerTheme||null,onChange:setTabHeaderTheme,includeSection:false}),
+    React.createElement("div",{style:{fontSize:12,fontWeight:600,color:"#4a5568",marginTop:8,marginBottom:2}},"Tema Corpo"),
+    React.createElement(ThemePicker,{current:cfg.bodyTheme||null,onChange:setTabBodyTheme,includeSection:false}));
+}
+
+function SettingsPanel(props){
+  var settings=props.settings;var setSettings=props.setSettings;
+  var _s=useState("main");var sub=_s[0];var setSub=_s[1];
+  var _s2=useState(false);var confirmReset=_s2[0];var setConfirmReset=_s2[1];
+  var _s3=useState(null);var pendingTheme=_s3[0];var setPendingTheme=_s3[1];
+  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","finanza","frasi","dashboard"];
+  function handleGlobalTheme(theme){var has=Object.values(settings.tabs).some(function(t){return t.headerTheme||t.bodyTheme;});if(has){setPendingTheme(theme);setConfirmReset(true);}else setSettings(function(s){return Object.assign({},s,{theme:theme});});}
+  function confirmResetFn(){var tabs={};Object.keys(settings.tabs).forEach(function(k){tabs[k]=Object.assign({},settings.tabs[k],{headerTheme:null,bodyTheme:null});});setSettings(function(s){return Object.assign({},s,{theme:pendingTheme,tabs:tabs});});setConfirmReset(false);setPendingTheme(null);}
+  function keepFn(){setSettings(function(s){return Object.assign({},s,{theme:pendingTheme});});setConfirmReset(false);setPendingTheme(null);}
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:2000,display:"flex",alignItems:"stretch",justifyContent:"flex-end"},onClick:props.onClose},
+    React.createElement("div",{style:{background:"#fff",width:360,overflowY:"auto",padding:24,boxShadow:"-4px 0 20px rgba(0,0,0,0.15)"},onClick:function(e){e.stopPropagation();}},
+      confirmReset&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,maxWidth:380,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}},React.createElement("h3",{style:{margin:"0 0 12px",fontSize:16,color:"#2d3748"}},"Cambia tema globale"),React.createElement("p",{style:{fontSize:14,color:"#718096",marginBottom:20}},"Hai temi personalizzati per alcune sezioni. Vuoi annullarli e applicare il tema globale a tutte?"),React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8}},React.createElement("button",{onClick:confirmResetFn,style:{background:"#e53e3e",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700}},"Si, applica tema unico a tutto"),React.createElement("button",{onClick:keepFn,style:{background:"#3182ce",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700}},"No, mantieni temi sezioni"),React.createElement("button",{onClick:function(){setConfirmReset(false);setPendingTheme(null);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px",cursor:"pointer"}},"Annulla")))),
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8}},sub!=="main"&&React.createElement("button",{onClick:function(){setSub("main");},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:16}},"<"),React.createElement("h2",{style:{margin:0,fontSize:19,fontWeight:800,color:"#2d3748"}},sub==="main"?"Impostazioni":sub==="tabs"?"Schede":"Generale")),
+        React.createElement("button",{onClick:props.onClose,style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#718096"}},"X")),
+      sub==="main"&&React.createElement(React.Fragment,null,[["generale","Generale","Tema, nome, export/import"],["tabs","Schede","Temi, nomi, visibilita"]].map(function(item){return React.createElement("div",{key:item[0],onClick:function(){setSub(item[0]);},style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"#f7fafc",borderRadius:12,cursor:"pointer",marginBottom:10,border:"1px solid #e2e8f0"}},React.createElement("div",null,React.createElement("div",{style:{fontWeight:700,color:"#2d3748"}},item[1]),React.createElement("div",{style:{fontSize:13,color:"#718096"}},item[2])),React.createElement("span",{style:{color:"#a0aec0",fontSize:20}},">"));})),
+      sub==="tabs"&&React.createElement(React.Fragment,null,tabKeys.map(function(k){return React.createElement(TabRow,{key:k,k:k,settings:settings,setSettings:setSettings});})),
+      sub==="generale"&&React.createElement(React.Fragment,null,
+        React.createElement("div",{style:{marginBottom:20}},React.createElement("label",{style:{fontSize:13,fontWeight:700,color:"#4a5568",display:"block",marginBottom:6}},"Nome utente"),React.createElement("input",{value:settings.userName||"",onChange:function(e){setSettings(function(s){return Object.assign({},s,{userName:e.target.value});});},placeholder:"Il tuo nome...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 12px",fontSize:14,boxSizing:"border-box"}})),
+        React.createElement("div",{style:{marginBottom:20}},React.createElement("label",{style:{fontSize:13,fontWeight:700,color:"#4a5568",display:"block",marginBottom:8}},"Tema globale"),React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}},THEME_LABELS.map(function(t){return React.createElement("div",{key:t[0],onClick:function(){handleGlobalTheme(t[0]);},style:{padding:"10px 8px",borderRadius:10,cursor:"pointer",textAlign:"center",border:settings.theme===t[0]?"3px solid #667eea":"2px solid #e2e8f0",background:t[2]}},React.createElement("div",{style:{fontSize:11,fontWeight:700,color:t[3]}},t[1]));}))),
+        React.createElement("div",{style:{marginBottom:20}},React.createElement("label",{style:{fontSize:13,fontWeight:700,color:"#4a5568",display:"block",marginBottom:6}},"Primo giorno settimana"),React.createElement("select",{value:settings.weekStart||"monday",onChange:function(e){setSettings(function(s){return Object.assign({},s,{weekStart:e.target.value});});},style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,background:"#fff"}},React.createElement("option",{value:"monday"},"Lunedi"),React.createElement("option",{value:"sunday"},"Domenica"))),
+        React.createElement("div",{style:{borderTop:"1px solid #e2e8f0",paddingTop:16,marginBottom:16}},React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#4a5568",marginBottom:10}},"Backup dati"),React.createElement("div",{style:{display:"flex",gap:8}},React.createElement("button",{onClick:props.onExport,style:{flex:1,background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700,fontSize:13}},"Esporta dati"),React.createElement("label",{style:{flex:1,background:"#e2e8f0",color:"#2d3748",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700,fontSize:13,textAlign:"center"}},"Importa dati",React.createElement("input",{type:"file",accept:".json",style:{display:"none"},onChange:props.onImport})))),
+        React.createElement("div",{style:{borderTop:"1px solid #e2e8f0",paddingTop:16,marginBottom:16}},React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#4a5568",marginBottom:10}},"Importa compleanni"),React.createElement("button",{onClick:function(){props.onBirthdayImport();props.onClose();},style:{width:"100%",background:"#805ad5",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700,fontSize:13}},"🎂 Apri importatore compleanni")),React.createElement("div",{style:{borderTop:"1px solid #e2e8f0",paddingTop:16}},React.createElement("div",{style:{fontSize:13,color:"#718096"}},"Alex Life Manager v5")))));
+}
+
+function App(){
+  var _s=useState(null);var data=_s[0];var setData=_s[1];
+  var _s2=useState(null);var objectives=_s2[0];var setObjectives=_s2[1];
+  var _s3=useState(null);var goals=_s3[0];var setGoals=_s3[1];
+  var _s4=useState(null);var todos=_s4[0];var setTodos=_s4[1];
+  var _s5=useState(null);var phrases=_s5[0];var setPhrases=_s5[1];
+  var _s6=useState(null);var events=_s6[0];var setEvents=_s6[1];
+  var _s7=useState(null);var settings=_s7[0];var setSettings=_s7[1];
+  var _s8=useState({});var dismissed=_s8[0];var setDismissed=_s8[1];
+  var _s9=useState(false);var loaded=_s9[0];var setLoaded=_s9[1];
+  var _s10=useState(false);var showSettings=_s10[0];var setShowSettings=_s10[1];
+  var _s11=useState(false);var bannerIgnored=_s11[0];var setBannerIgnored=_s11[1];
+  var _s12=useState(null);var area=_s12[0];var setArea=_s12[1];
+  var _s13=useState(null);var tabDragSrc=_s13[0];var setTabDragSrc=_s13[1];
+  var _s14=useState(null);var tabOrder=_s14[0];var setTabOrder=_s14[1];
+  var _s15=useState(null);var swipeStartX=_s15[0];var setSwipeStartX=_s15[1];
+  var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
+
+  useEffect(function(){
+    function doLoad(){Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{})]).then(function(res){setData(res[0]);setObjectives(res[1]);setGoals(res[2]);setTodos(res[3]);setPhrases(res[4]);setEvents(res[5]);setSettings(res[6]);setDismissed(res[7]);var homeTab=Object.entries(res[6].tabs||{}).find(function(e){return e[1].home;});setArea(homeTab?homeTab[0]:"todo");setLoaded(true);});}
+    if(window._fbReady){doLoad();}else{window.addEventListener("fbReady",doLoad,{once:true});}
+  },[]);
+
+  useEffect(function(){if(loaded&&data)fbSave("alm_data",data);},[data,loaded]);
+  useEffect(function(){if(loaded&&objectives)fbSave("alm_objectives",objectives);},[objectives,loaded]);
+  useEffect(function(){if(loaded&&goals)fbSave("alm_goals",goals);},[goals,loaded]);
+  useEffect(function(){if(loaded&&todos)fbSave("alm_todos",todos);},[todos,loaded]);
+  useEffect(function(){if(loaded&&phrases)fbSave("alm_phrases",phrases);},[phrases,loaded]);
+  useEffect(function(){if(loaded&&events)fbSave("alm_events",events);},[events,loaded]);
+  useEffect(function(){if(loaded&&settings)fbSave("alm_settings",settings);},[settings,loaded]);
+  useEffect(function(){if(loaded&&dismissed)fbSave("alm_dismissed",dismissed);},[dismissed,loaded]);
+
+  var globalTheme=settings?THEMES[settings.theme]||THEMES.light:THEMES.light;
+  var tabCfg=area&&settings&&settings.tabs[area]?settings.tabs[area]:{};
+  var headerTheme=tabCfg.headerTheme?THEMES[tabCfg.headerTheme]||globalTheme:globalTheme;
+  var bodyTheme=tabCfg.bodyTheme?THEMES[tabCfg.bodyTheme]||globalTheme:globalTheme;
+  var phrase=phrases?getPhraseForToday(phrases):null;
+  var banners=events&&dismissed?getDueBanners(events,dismissed):[];
+  var visibleBanners=bannerIgnored?[]:banners;
+
+  function handleExport(){
+    var all={data:data,objectives:objectives,goals:goals,todos:todos,phrases:phrases,events:events,settings:settings,dismissed:dismissed};
+    var blob=new Blob([JSON.stringify(all,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="alex-backup.json";a.click();
+  }
+  function handleImport(e){var file=e.target.files[0];if(!file)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(d.data)setData(d.data);if(d.objectives)setObjectives(d.objectives);if(d.goals)setGoals(d.goals);if(d.todos)setTodos(d.todos);if(d.phrases)setPhrases(d.phrases);if(d.events)setEvents(d.events);if(d.settings)setSettings(d.settings);if(d.dismissed)setDismissed(d.dismissed);alert("Importazione completata!");}catch(err){alert("File non valido");}};r.readAsText(file);}
+  function handleCloseBanner(key){setDismissed(function(d){var n=Object.assign({},d);n[key]=true;return n;});}
+  function handleAddTodo(ev){setTodos(function(t){return t.concat([{id:mkId(),text:ev.title+(ev.daysAway===0?" (OGGI)":" ("+ev.nextDate+")"),done:false,notes:ev.notes||""}]);});handleCloseBanner(ev.key);}
+  var baseTabs=settings?ALL_TABS.filter(function(t){return !settings.tabs[t.k]||settings.tabs[t.k].visible!==false;}):ALL_TABS;
+  var orderedKeys=tabOrder?tabOrder.filter(function(k){return baseTabs.find(function(t){return t.k===k;});}):[]; 
+  var visibleTabs=orderedKeys.length?orderedKeys.map(function(k){return baseTabs.find(function(t){return t.k===k;});}).concat(baseTabs.filter(function(t){return orderedKeys.indexOf(t.k)<0;})):baseTabs;
+  function reorderTabs(fromK,toK){var ks=visibleTabs.map(function(t){return t.k;});var fi=ks.indexOf(fromK);var ti=ks.indexOf(toK);var arr=ks.slice();arr.splice(fi,1);arr.splice(ti,0,fromK);setTabOrder(arr);}
+  function handleTouchStart(e){/* swipe disabilitato */}
+  function handleTouchEnd(e){/* swipe disabilitato */}
+  function getTabLabel(k){var cfg=settings&&settings.tabs[k];if(cfg&&cfg.label)return cfg.label;var tab=ALL_TABS.find(function(t){return t.k===k;});return tab?tab.l:k;}
+
+  if(!loaded||!area||!data)return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontSize:18,color:"#718096",fontFamily:"Segoe UI,system-ui,sans-serif"}},"Caricamento...");
+
+  var hasBanners=visibleBanners.length!==0;
+  var settingsProps={settings:settings,setSettings:setSettings,onExport:handleExport,onImport:handleImport,onBirthdayImport:function(){setBirthdayImportApp({text:"",parsed:[]});},onClose:function(){setShowSettings(false);}};
+  var bannerProps={banners:visibleBanners,onIgnore:function(){setBannerIgnored(true);},onClose:handleCloseBanner,onAddTodo:handleAddTodo};
+  return React.createElement("div",{onTouchStart:handleTouchStart,onTouchEnd:handleTouchEnd,style:{fontFamily:"Segoe UI,system-ui,sans-serif",minHeight:"100vh",background:bodyTheme.bg}},
+    React.createElement("div",{style:{background:headerTheme.header,color:"#fff",padding:"16px 20px 0"}},
+      React.createElement("div",{style:{maxWidth:960,margin:"0 auto"}},
+        React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},
+          React.createElement("div",null,React.createElement("h1",{style:{margin:0,fontSize:20,fontWeight:800}},(settings.userName||"Alex")+" Life Manager"),React.createElement("div",{style:{fontSize:12,opacity:0.7,marginTop:2}},todayFormatted())),
+          React.createElement("button",{onClick:function(){setShowSettings(true);},style:{background:"rgba(255,255,255,0.18)",border:"none",color:"#fff",borderRadius:8,padding:"7px 16px",cursor:"pointer",fontSize:13,fontWeight:600}},"Impostazioni")),
+        phrase&&React.createElement("div",{style:{fontSize:13,opacity:0.78,fontStyle:"italic",marginBottom:10,lineHeight:1.5}},"“"+phrase+"”"),
+        React.createElement("div",{style:{display:"flex",gap:3,flexWrap:"wrap"}},visibleTabs.map(function(t){return React.createElement("button",{key:t.k,draggable:true,onDragStart:function(){setTabDragSrc(t.k);},onDragOver:function(e){e.preventDefault();},onDrop:function(e){e.preventDefault();if(tabDragSrc&&tabDragSrc!==t.k)reorderTabs(tabDragSrc,t.k);setTabDragSrc(null);},onClick:function(){setArea(t.k);},style:{padding:"8px 13px",border:"none",borderRadius:"8px 8px 0 0",cursor:"grab",fontWeight:700,fontSize:13,whiteSpace:"nowrap",background:area===t.k?"#fff":tabDragSrc===t.k?"rgba(255,255,255,0.5)":"rgba(255,255,255,0.15)",color:area===t.k?"#2d3748":"#fff",transition:"all 0.2s"}},getTabLabel(t.k));})))),
+    area==="todo"?React.createElement(TodoSection,{todos:todos,setTodos:setTodos}):null,
+    area==="obiettivi"?React.createElement(Top10,{objectives:objectives,setObjectives:setObjectives}):null,
+    area==="goals"?React.createElement(GoalsSection,{goals:goals,setGoals:setGoals,onAddTodo:function(todo){setTodos(function(t){return t.concat([todo]);});}}):null,
+    area==="personale"?React.createElement(AreaView,{areaKey:"personale",data:data,setData:setData,onAddTodo:function(todo){setTodos(function(t){return t.concat([todo]);});}}):null,
+    area==="lavorativa"?React.createElement(AreaView,{areaKey:"lavorativa",data:data,setData:setData,onAddTodo:function(todo){setTodos(function(t){return t.concat([todo]);});}}):null,
+    area==="artistica"?React.createElement(AreaView,{areaKey:"artistica",data:data,setData:setData,onAddTodo:function(todo){setTodos(function(t){return t.concat([todo]);});}}):null,
+    area==="calendar"?React.createElement(CalendarSection,{events:events,setEvents:setEvents,onAddTodo:handleAddTodo,birthdayImportExt:birthdayImportApp,setBirthdayImportExt:setBirthdayImportApp}):null,
+    area==="finanza"?React.createElement(FinanzaSection):null,
+    area==="frasi"?React.createElement(FrasiSection,{phrases:phrases,setPhrases:setPhrases}):null,
+    area==="dashboard"?React.createElement(Dashboard,{data:data}):null,
+    showSettings?React.createElement(SettingsPanel,settingsProps):null,
+    hasBanners?React.createElement(BannerOverlay,bannerProps):null
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
