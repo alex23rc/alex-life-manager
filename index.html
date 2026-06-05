@@ -32,9 +32,17 @@ input,textarea,select,button{font-family:inherit;}
 </head>
 <body>
 <div id="root"></div>
+<div id="fb-save-warn" style="display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#c53030;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:700;z-index:9999;gap:12px;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);">&#9888; Salvataggio Firebase fallito &mdash; verifica connessione<button onclick="this.parentElement.style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;margin-left:8px;">x</button></div>
 <script type="text/javascript">
 const {useState,useEffect}=React;
-function fbSave(k,v){return window._fbSave?window._fbSave(k,v):Promise.resolve();}
+function fbSave(k,v){
+  if(!window._fbSave)return Promise.resolve();
+  return window._fbSave(k,v).catch(function(e){
+    console.warn("fbSave error:",e);
+    var el=document.getElementById("fb-save-warn");
+    if(el)el.style.display="flex";
+  });
+}
 function fbLoad(k,def){return window._fbLoad?window._fbLoad(k,def):Promise.resolve(def);}
 
 const colMap={red:"#e53e3e",green:"#38a169",gold:"#d69e2e",blue:"#3182ce",gray:"#718096"};
@@ -905,6 +913,7 @@ function App(){
   var _s13=useState(null);var tabDragSrc=_s13[0];var setTabDragSrc=_s13[1];
   var _s14=useState(null);var tabOrder=_s14[0];var setTabOrder=_s14[1];
   var _s17=useState([]);var undoHistory=_s17[0];var setUndoHistory=_s17[1];
+  var _s18=useState(false);var saveReady=_s18[0];var setSaveReady=_s18[1];
   var _s18=useState(false);var loadError=_s18[0];var setLoadError=_s18[1];
   var _s15=useState(null);var swipeStartX=_s15[0];var setSwipeStartX=_s15[1];
   var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
@@ -912,23 +921,23 @@ function App(){
   useEffect(function(){
     function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2]))setGoals(res[2]);setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);if(res[8])setTabOrder(res[8]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
         if(window._fbLoadError){setLoadError(true);setLoaded(true);}
-        else{setLoaded(true);setTimeout(function(){window._alm_ready=true;},2000);}});}
+        else{setLoaded(true);setTimeout(function(){if(!window._fbLoadError){window._alm_ready=true;setSaveReady(true);}},2000);}});}
     if(window._fbReady){doLoad();}else{window.addEventListener("fbReady",doLoad,{once:true});}
   },[]);
 
   // PROTEZIONE DATI: salva su Firebase SOLO dopo che l'utente ha fatto una modifica
   // Il flag _alm_ready viene settato 2 secondi dopo il caricamento completato
   // Questo garantisce che il primo render con i dati caricati non sovrascriva nulla
-  function canSave(){return !!window._alm_ready&&!window._offlineMode&&!window._fbLoadError;}
-  useEffect(function(){if(canSave()&&data)fbSave("alm_data",data);},[data]);
-  useEffect(function(){if(canSave()&&objectives)fbSave("alm_objectives",objectives);},[objectives]);
-  useEffect(function(){if(canSave()&&goals)fbSave("alm_goals",goals);},[goals]);
-  useEffect(function(){if(canSave()&&todos)fbSave("alm_todos",todos);},[todos]);
-  useEffect(function(){if(canSave()&&phrases)fbSave("alm_phrases",phrases);},[phrases]);
-  useEffect(function(){if(canSave()&&events)fbSave("alm_events",events);},[events]);
-  useEffect(function(){if(canSave()&&settings)fbSave("alm_settings",settings);},[settings]);
-  useEffect(function(){if(canSave()&&dismissed)fbSave("alm_dismissed",dismissed);},[dismissed]);
-  useEffect(function(){if(canSave()&&tabOrder)fbSave("alm_taborder",tabOrder);},[tabOrder]);
+  function canSave(){return saveReady&&!!window._alm_ready&&!window._offlineMode&&!window._fbLoadError;}
+  useEffect(function(){if(canSave()&&data)fbSave("alm_data",data);},[data,saveReady]);
+  useEffect(function(){if(canSave()&&objectives)fbSave("alm_objectives",objectives);},[objectives,saveReady]);
+  useEffect(function(){if(canSave()&&goals)fbSave("alm_goals",goals);},[goals,saveReady]);
+  useEffect(function(){if(canSave()&&todos)fbSave("alm_todos",todos);},[todos,saveReady]);
+  useEffect(function(){if(canSave()&&phrases)fbSave("alm_phrases",phrases);},[phrases,saveReady]);
+  useEffect(function(){if(canSave()&&events)fbSave("alm_events",events);},[events,saveReady]);
+  useEffect(function(){if(canSave()&&settings)fbSave("alm_settings",settings);},[settings,saveReady]);
+  useEffect(function(){if(canSave()&&dismissed)fbSave("alm_dismissed",dismissed);},[dismissed,saveReady]);
+  useEffect(function(){if(canSave()&&tabOrder)fbSave("alm_taborder",tabOrder);},[tabOrder,saveReady]);
 
   var globalTheme=settings?THEMES[settings.theme]||THEMES.light:THEMES.light;
   var tabCfg=area&&settings&&settings.tabs[area]?settings.tabs[area]:{};
@@ -959,7 +968,14 @@ function App(){
     var all={data:data,objectives:objectives,goals:goals,todos:todos,phrases:phrases,events:events,settings:settings,dismissed:dismissed};
     var blob=new Blob([JSON.stringify(all,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="alex-backup.json";a.click();
   }
-  function handleImport(e){var file=e.target.files[0];if(!file)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);var get=function(k1,k2){return d[k1]||d[k2]||null;};var imp_data=get("data","alm_data");var imp_obj=get("objectives","alm_objectives");var imp_goals=get("goals","alm_goals");var imp_todos=get("todos","alm_todos");var imp_phrases=get("phrases","alm_phrases");var imp_events=get("events","alm_events");var imp_settings=get("settings","alm_settings");var imp_dismissed=get("dismissed","alm_dismissed");function hasVal(v){return v!==null&&v!==undefined&&(Array.isArray(v)?true:typeof v==="object"?Object.keys(v).length>0:true);}if(hasVal(imp_data))setData(imp_data);if(hasVal(imp_obj))setObjectives(imp_obj);if(hasVal(imp_goals))setGoals(imp_goals);if(hasVal(imp_todos))setTodos(imp_todos);if(hasVal(imp_phrases))setPhrases(imp_phrases);if(hasVal(imp_events))setEvents(imp_events);if(hasVal(imp_settings))setSettings(imp_settings);if(hasVal(imp_dismissed))setDismissed(imp_dismissed);alert("Importazione completata!");}catch(err){alert("File non valido: "+err.message);}};r.readAsText(file);}
+  function handleImport(e){var file=e.target.files[0];if(!file)return;
+  if(!canSave()){alert("Firebase non ancora pronto. Attendi qualche secondo e riprova.");return;}
+var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);var get=function(k1,k2){return d[k1]||d[k2]||null;};var imp_data=get("data","alm_data");var imp_obj=get("objectives","alm_objectives");var imp_goals=get("goals","alm_goals");var imp_todos=get("todos","alm_todos");var imp_phrases=get("phrases","alm_phrases");var imp_events=get("events","alm_events");var imp_settings=get("settings","alm_settings");var imp_dismissed=get("dismissed","alm_dismissed");function hasVal(v){return v!==null&&v!==undefined&&(Array.isArray(v)?v.length>0:typeof v==="object"?Object.keys(v).length>0:true);}
+var imported=0;
+if(hasVal(imp_data)){setData(imp_data);imported++;}
+if(hasVal(imp_obj)){setObjectives(imp_obj);imported++;}
+if(hasVal(imp_goals)){setGoals(imp_goals);imported++;}if(hasVal(imp_todos))setTodos(imp_todos);if(hasVal(imp_phrases))setPhrases(imp_phrases);if(hasVal(imp_events))setEvents(imp_events);if(hasVal(imp_settings))setSettings(imp_settings);if(hasVal(imp_dismissed))setDismissed(imp_dismissed);if(imported===0&&!imp_todos&&!imp_events&&!imp_dismissed){alert("Nessun dato riconosciuto. Importazione annullata.");return;}
+alert("Importazione completata! "+imported+" sezioni principali importate.");}catch(err){alert("File non valido: "+err.message);}};r.readAsText(file);}
   function handleCloseBanner(key){setDismissed(function(d){var n=Object.assign({},d);n[key]=true;return n;});}
   function handleAddTodo(ev){pushUndo("sposta evento a todo");setTodos(function(t){return [{id:mkId(),text:ev.title+(ev.daysAway===0?" (OGGI)":" ("+ev.nextDate+")"),done:false,notes:ev.notes||""}].concat(t);});handleCloseBanner(ev.key);}
   var baseTabs=settings?ALL_TABS.filter(function(t){return !settings.tabs[t.k]||settings.tabs[t.k].visible!==false;}):ALL_TABS;
