@@ -20,7 +20,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   window._fbSave = async (k,v) => { try { await setDoc(doc(db,"alm",k),{value:JSON.stringify(v)}); } catch(e){ console.error(e); } };
-  window._fbLoad = async (k,def) => { try { const s=await getDoc(doc(db,"alm",k)); return s.exists()?JSON.parse(s.data().value):def; } catch(e){ return def; } };
+  window._fbLoad = async (k,def) => { try { const s=await getDoc(doc(db,"alm",k)); return s.exists()?JSON.parse(s.data().value):def; } catch(e){ window._fbLoadError=true; console.warn("fbLoad error on "+k,e); return def; } };
   window._fbReady=true; window.dispatchEvent(new Event("fbReady"));
 </script>
 <style>
@@ -905,23 +905,30 @@ function App(){
   var _s13=useState(null);var tabDragSrc=_s13[0];var setTabDragSrc=_s13[1];
   var _s14=useState(null);var tabOrder=_s14[0];var setTabOrder=_s14[1];
   var _s17=useState([]);var undoHistory=_s17[0];var setUndoHistory=_s17[1];
+  var _s18=useState(false);var loadError=_s18[0];var setLoadError=_s18[1];
   var _s15=useState(null);var swipeStartX=_s15[0];var setSwipeStartX=_s15[1];
   var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
 
   useEffect(function(){
-    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2]))setGoals(res[2]);setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);if(res[8])setTabOrder(res[8]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");setLoaded(true);});}
+    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2]))setGoals(res[2]);setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);if(res[8])setTabOrder(res[8]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
+        if(window._fbLoadError){setLoadError(true);setLoaded(true);}
+        else{setLoaded(true);setTimeout(function(){window._alm_ready=true;},2000);}});}
     if(window._fbReady){doLoad();}else{window.addEventListener("fbReady",doLoad,{once:true});}
   },[]);
 
-  useEffect(function(){if(loaded&&data&&!window._offlineMode)fbSave("alm_data",data);},[data,loaded]);
-  useEffect(function(){if(loaded&&objectives&&!window._offlineMode)fbSave("alm_objectives",objectives);},[objectives,loaded]);
-  useEffect(function(){if(loaded&&goals&&!window._offlineMode)fbSave("alm_goals",goals);},[goals,loaded]);
-  useEffect(function(){if(loaded&&todos&&!window._offlineMode)fbSave("alm_todos",todos);},[todos,loaded]);
-  useEffect(function(){if(loaded&&phrases&&!window._offlineMode)fbSave("alm_phrases",phrases);},[phrases,loaded]);
-  useEffect(function(){if(loaded&&events&&!window._offlineMode)fbSave("alm_events",events);},[events,loaded]);
-  useEffect(function(){if(loaded&&settings&&!window._offlineMode)fbSave("alm_settings",settings);},[settings,loaded]);
-  useEffect(function(){if(loaded&&dismissed&&!window._offlineMode)fbSave("alm_dismissed",dismissed);},[dismissed,loaded]);
-  useEffect(function(){if(loaded&&tabOrder&&!window._offlineMode)fbSave("alm_taborder",tabOrder);},[tabOrder,loaded]);
+  // PROTEZIONE DATI: salva su Firebase SOLO dopo che l'utente ha fatto una modifica
+  // Il flag _alm_ready viene settato 2 secondi dopo il caricamento completato
+  // Questo garantisce che il primo render con i dati caricati non sovrascriva nulla
+  function canSave(){return !!window._alm_ready&&!window._offlineMode&&!window._fbLoadError;}
+  useEffect(function(){if(canSave()&&data)fbSave("alm_data",data);},[data]);
+  useEffect(function(){if(canSave()&&objectives)fbSave("alm_objectives",objectives);},[objectives]);
+  useEffect(function(){if(canSave()&&goals)fbSave("alm_goals",goals);},[goals]);
+  useEffect(function(){if(canSave()&&todos)fbSave("alm_todos",todos);},[todos]);
+  useEffect(function(){if(canSave()&&phrases)fbSave("alm_phrases",phrases);},[phrases]);
+  useEffect(function(){if(canSave()&&events)fbSave("alm_events",events);},[events]);
+  useEffect(function(){if(canSave()&&settings)fbSave("alm_settings",settings);},[settings]);
+  useEffect(function(){if(canSave()&&dismissed)fbSave("alm_dismissed",dismissed);},[dismissed]);
+  useEffect(function(){if(canSave()&&tabOrder)fbSave("alm_taborder",tabOrder);},[tabOrder]);
 
   var globalTheme=settings?THEMES[settings.theme]||THEMES.light:THEMES.light;
   var tabCfg=area&&settings&&settings.tabs[area]?settings.tabs[area]:{};
@@ -964,6 +971,12 @@ function App(){
   function getTabLabel(k){var cfg=settings&&settings.tabs[k];if(cfg&&cfg.label)return cfg.label;var tab=ALL_TABS.find(function(t){return t.k===k;});return tab?tab.l:k;}
 
   if(!loaded||!area||!data)return React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",fontSize:18,color:"#718096",fontFamily:"Segoe UI,system-ui,sans-serif"}},"Caricamento...");
+  if(loadError)return React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:20,padding:24,fontFamily:"Segoe UI,system-ui,sans-serif",background:"#fff5f5"}},
+    React.createElement("div",{style:{fontSize:48}},"⚠️"),
+    React.createElement("div",{style:{fontSize:20,fontWeight:800,color:"#c53030"}},"Caricamento parziale"),
+    React.createElement("div",{style:{fontSize:14,color:"#744210",textAlign:"center",maxWidth:320}},"La connessione con Firebase non è riuscita correttamente. I dati NON vengono salvati per proteggere le tue informazioni."),
+    React.createElement("button",{onClick:function(){window.location.reload();},style:{background:"#e53e3e",color:"#fff",border:"none",borderRadius:10,padding:"12px 28px",fontSize:16,fontWeight:700,cursor:"pointer"}},"Ricarica la pagina"),
+    React.createElement("div",{style:{fontSize:12,color:"#a0aec0"}},"I tuoi dati su Firebase sono al sicuro"));
 
   var hasBanners=visibleBanners.length!==0;
   var settingsProps={settings:settings,setSettings:setSettings,onExport:handleExport,onImport:handleImport,onBirthdayImport:function(){setBirthdayImportApp({text:"",parsed:[]});},onClose:function(){setShowSettings(false);}};
