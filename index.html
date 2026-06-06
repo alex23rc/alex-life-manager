@@ -572,15 +572,15 @@ function AISection(props){
             renderCol(att2,"att2",false),
             renderCol(pas2,"pas2",true)),
           React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12}},
-            React.createElement("div",{style:{background:bilColor(bil1),borderRadius:10,padding:"12px 16px",textAlign:"center"}},
+            React.createElement("div",{style:{background:bilColor(bil1),borderRadius:10,padding:"12px 16px",textAlign:"center",border:"2px solid "+bilTextColor(bil1)}},
               React.createElement("div",{style:{fontSize:11,fontWeight:700,color:bilTextColor(bil1),marginBottom:4}},"BILANCIO I LIVELLO"),
               React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(bil1)}},bil1.toFixed(2))),
-            React.createElement("div",{style:{borderRadius:10,padding:"12px 16px",textAlign:"center",background:bilColor(totale),gridColumn:"2/4"}},
-              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:bilTextColor(totale),marginBottom:4}},"TOTALE"),
-              React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(totale)}},totale.toFixed(2))),
-            React.createElement("div",{style:{background:bilColor(bil2),borderRadius:10,padding:"12px 16px",textAlign:"center"}},
+            React.createElement("div",{style:{background:bilColor(bil2),borderRadius:10,padding:"12px 16px",textAlign:"center",border:"2px solid "+bilTextColor(bil2)}},
               React.createElement("div",{style:{fontSize:11,fontWeight:700,color:bilTextColor(bil2),marginBottom:4}},"BILANCIO II LIVELLO"),
-              React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(bil2)}},bil2.toFixed(2))))));
+              React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(bil2)}},bil2.toFixed(2))),
+            React.createElement("div",{style:{background:bilColor(totale),borderRadius:10,padding:"12px 16px",textAlign:"center",border:"3px solid "+bilTextColor(totale)}},
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:bilTextColor(totale),marginBottom:4}},"TOTALE"),
+              React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(totale)}},totale.toFixed(2))))));
 }
 
 function AMSection(props){
