@@ -56,7 +56,7 @@ const MONTHS_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio
 const ALL_TABS=[
   {k:"todo",l:"To Do"},{k:"obiettivi",l:"Top 10"},{k:"goals",l:"Obiettivi"},
   {k:"personale",l:"Personale"},{k:"lavorativa",l:"Lavoro"},{k:"artistica",l:"Arte"},
-  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"dashboard",l:"Dashboard"},
+  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"dashboard",l:"Dashboard"},
 ];
 
 const THEMES={
@@ -92,7 +92,7 @@ const INIT_SETTINGS={
     artistica:{visible:true,home:false,label:"Arte",headerTheme:null,bodyTheme:null},
     calendar:{visible:true,home:false,label:"Calendario",headerTheme:null,bodyTheme:null},
     frasi:{visible:true,home:false,label:"Frasi",headerTheme:null,bodyTheme:null},
-    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
+    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
   },
   theme:"light",userName:"Alex",weekStart:"monday",
 };
@@ -234,6 +234,45 @@ const INIT_PHRASES=[
 ];
 
 const INIT_EVENTS=[];
+const INIT_AI={
+"att1":[
+  {"id":"a1","name":"Autostima","val":0},{"id":"a2","name":"Positivita ed ottimismo","val":0},
+  {"id":"a3","name":"Connessione","val":0},{"id":"a4","name":"Serenita","val":0},
+  {"id":"a5","name":"Coraggio","val":0},{"id":"a6","name":"Benessere fisico","val":0},
+  {"id":"a7","name":"Immaginazione","val":0},{"id":"a8","name":"Convinzioni potenzianti","val":0},
+  {"id":"a9","name":"Creativita","val":0},{"id":"a10","name":"Generosita","val":0},
+  {"id":"a11","name":"Forza interiore","val":0},{"id":"a12","name":"Sicurezza","val":0},
+  {"id":"a13","name":"Simpatia","val":0},{"id":"a14","name":"Intelligenza emotiva","val":0},
+  {"id":"a15","name":"Determinazione","val":0}
+],
+"pas1":[
+  {"id":"p1","name":"Pigrizia","val":0},{"id":"p2","name":"Paura","val":0},
+  {"id":"p3","name":"Ansia","val":0},{"id":"p4","name":"Rancore","val":0},
+  {"id":"p5","name":"Avarizia","val":0},{"id":"p6","name":"Scarso utilizzo dell immaginazione","val":0},
+  {"id":"p7","name":"Conflitti non risolti","val":0},{"id":"p8","name":"Mancanza di fantasia","val":0},
+  {"id":"p9","name":"Insicurezza","val":0},{"id":"p10","name":"Convinzioni depotenzianti","val":0},
+  {"id":"p11","name":"Dubbi","val":0},{"id":"p12","name":"Ignoranza","val":0},
+  {"id":"p13","name":"Malessere fisico e mentale","val":0},{"id":"p14","name":"Mancanza di intelligenza emotiva","val":0}
+],
+"att2":[
+  {"id":"b1","name":"Obiettivi ben definiti specifici e scritti","val":0},{"id":"b2","name":"Organizzazione","val":0},
+  {"id":"b3","name":"Conoscenze specifiche/studi","val":0},{"id":"b4","name":"Time management","val":0},
+  {"id":"b5","name":"Buona reputazione","val":0},{"id":"b6","name":"Attitudine al rischio","val":0},
+  {"id":"b7","name":"Disponibilita a imparare","val":0},{"id":"b8","name":"Capacita di marketing","val":0},
+  {"id":"b9","name":"Capacita di motivare e automotivarsi","val":0},{"id":"b10","name":"Capacita di comunicazione","val":0},
+  {"id":"b11","name":"Capacita di persuasione","val":0},{"id":"b12","name":"Capacita di vendita","val":0},
+  {"id":"b13","name":"Capacita di delegare","val":0}
+],
+"pas2":[
+  {"id":"q1","name":"Cattiva gestione del tempo","val":0},{"id":"q2","name":"Cattiva reputazione","val":0},
+  {"id":"q3","name":"Scarsa capacita di vendita","val":0},{"id":"q4","name":"Scarsa capacita di comunicazione","val":0},
+  {"id":"q5","name":"Scarsa capacita di persuasione","val":0},{"id":"q6","name":"Procastinare/rimandare","val":0},
+  {"id":"q7","name":"Indecisione","val":0},{"id":"q8","name":"Incapacita di fidarsi","val":0},
+  {"id":"q9","name":"Disorganizzazione","val":0},{"id":"q10","name":"Ambiente depotenziante","val":0},
+  {"id":"q11","name":"Mancanza obiettivi scritti","val":0},{"id":"q12","name":"Incapacita di delegare","val":0}
+],
+"storico":[]
+};
 
 function todayStr(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function localDateStr(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
@@ -328,7 +367,7 @@ function TodoSection(props){
   var _s2=useState(null);var noteTarget=_s2[0];var setNoteTarget=_s2[1];
   var _s3=useState(null);var editTarget=_s3[0];var setEditTarget=_s3[1];
   var _s4=useState("");var editVal=_s4[0];var setEditVal=_s4[1];
-  function add(){if(!newText.trim())return;setTodos(function(t){return [{id:mkId(),text:newText.trim(),done:false,notes:""}].concat(t);});setNewText("");}
+  function add(){if(!newText.trim())return;setTodos(function(t){return t.concat([{id:mkId(),text:newText.trim(),done:false,notes:""}]);});setNewText("");}
   function toggle(id){if(props.pushUndo)props.pushUndo("completamento todo");setTodos(function(t){return t.map(function(x){return x.id===id?Object.assign({},x,{done:!x.done}):x;});});}
   function remove(id){if(props.pushUndo)props.pushUndo("rimozione todo");setTodos(function(t){return t.filter(function(x){return x.id!==id;});});}
   function saveNote(id,note){setTodos(function(t){return t.map(function(x){return x.id===id?Object.assign({},x,{notes:note}):x;});});}
@@ -360,6 +399,183 @@ function TodoSection(props){
         React.createElement("span",{style:{flex:1,fontSize:15,color:"#a0aec0",textDecoration:"line-through"}},item.text),
         React.createElement("button",{onClick:function(){remove(item.id);},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:18,flexShrink:0}},"x"));})),
     noteTarget&&noteItem&&React.createElement(NoteModal,{title:"Nota",notes:noteItem.notes||"",onSave:function(note){saveNote(noteTarget,note);},onClose:function(){setNoteTarget(null);}}));
+}
+
+function AISection(props){
+  var aiData=props.aiData;var setAiData=props.setAiData;
+  var _sv=useState("tabella");var view=_sv[0];var setView=_sv[1];
+  var _se=useState(null);var editing=_se[0];var setEditing=_se[1];
+  var _sa=useState(null);var adding=_sa[0];var setAdding=_sa[1];
+  var _sn=useState("");var newName=_sn[0];var setNewName=_sn[1];
+
+  var att1=aiData.att1||[];var pas1=aiData.pas1||[];
+  var att2=aiData.att2||[];var pas2=aiData.pas2||[];
+  var storico=aiData.storico||[];
+
+  function avg(arr){if(!arr.length)return 0;return arr.reduce(function(s,x){return s+(x.val||0);},0)/arr.length;}
+  function top3ids(arr){return arr.slice().sort(function(a,b){return b.val-a.val;}).slice(0,3).map(function(x){return x.id;});}
+  function bilColor(v){return v>=6.5?"#c6f6d5":v>=4?"#fefcbf":"#fed7d7";}
+  function bilTextColor(v){return v>=6.5?"#276749":v>=4?"#744210":"#c53030";}
+
+  function updateVal(col,id,val){
+    setAiData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n[col]=n[col].map(function(x){return x.id===id?Object.assign({},x,{val:Math.max(0,Math.min(10,val))}):x;});
+      return n;
+    });
+  }
+  function updateName(col,id,name){
+    setAiData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n[col]=n[col].map(function(x){return x.id===id?Object.assign({},x,{name:name}):x;});
+      return n;
+    });
+    setEditing(null);
+  }
+  function removeItem(col,id){
+    setAiData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n[col]=n[col].filter(function(x){return x.id!==id;});
+      return n;
+    });
+  }
+  function addItem(col){
+    if(!newName.trim())return;
+    var newId=col+"_"+Date.now();
+    setAiData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n[col]=(n[col]||[]).concat([{id:newId,name:newName.trim(),val:0}]);
+      return n;
+    });
+    setNewName("");setAdding(null);
+  }
+  function salvaStorico(){
+    var ma1v=+avg(att1).toFixed(2);var mp1v=+avg(pas1).toFixed(2);
+    var ma2v=+avg(att2).toFixed(2);var mp2v=+avg(pas2).toFixed(2);
+    var tot=+((ma1v+ma2v-mp1v-mp2v)/2).toFixed(2);
+    var snap={data:new Date().toISOString().slice(0,10),ma1:ma1v,mp1:mp1v,ma2:ma2v,mp2:mp2v,tot:tot};
+    setAiData(function(d){var n=JSON.parse(JSON.stringify(d));n.storico=(n.storico||[]).concat([snap]);return n;});
+    alert("Snapshot salvato!");
+  }
+  function deleteSnapshot(idx){
+    if(!window.confirm("Eliminare questo snapshot?"))return;
+    setAiData(function(d){var n=JSON.parse(JSON.stringify(d));n.storico=n.storico.filter(function(_,i){return i!==idx;});return n;});
+  }
+
+  var ma1=avg(att1);var mp1=avg(pas1);
+  var ma2=avg(att2);var mp2=avg(pas2);
+  var bil1=ma1-mp1;var bil2=ma2-mp2;
+  var totale=(ma1+ma2-mp1-mp2)/2;
+
+  function renderCol(items,col,isPassivo){
+    var t3=top3ids(items);
+    return React.createElement("div",{style:{flex:1,minWidth:0}},
+      React.createElement("div",{style:{fontSize:11,fontWeight:700,color:"#718096",textTransform:"uppercase",letterSpacing:1,marginBottom:8,padding:"0 4px"}},
+        isPassivo?"PASSIVITA'":"ATTIVITA'"),
+      React.createElement("div",{style:{fontSize:10,color:"#a0aec0",marginBottom:10,padding:"0 4px",lineHeight:1.3}},
+        col==="att1"?"Asset Potenzianti I liv.":col==="pas1"?"Asset Depotenzianti I liv.":col==="att2"?"Asset Potenzianti II liv.":"Asset Depotenzianti II liv."),
+      items.map(function(item){
+        var isTop=t3.indexOf(item.id)>=0;
+        var bg=isTop?(isPassivo?"#fc8181":"#68d391"):"transparent";
+        var fontColor=isTop?"#fff":"#2d3748";
+        return React.createElement("div",{key:item.id,style:{display:"flex",alignItems:"center",gap:4,marginBottom:4,background:bg,borderRadius:6,padding:"3px 4px",transition:"background 0.2s"}},
+          editing&&editing[0]===col&&editing[1]===item.id
+            ?React.createElement("input",{autoFocus:true,defaultValue:item.name,onBlur:function(e){updateName(col,item.id,e.target.value);},onKeyDown:function(e){if(e.key==="Enter")updateName(col,item.id,e.target.value);if(e.key==="Escape")setEditing(null);},style:{flex:1,fontSize:12,border:"1px solid #667eea",borderRadius:4,padding:"2px 4px"}})
+            :React.createElement("span",{onClick:function(){setEditing([col,item.id]);},title:"Clicca per rinominare",style:{flex:1,fontSize:12,color:fontColor,cursor:"pointer",lineHeight:1.3}},item.name),
+          React.createElement("input",{type:"number",min:0,max:10,value:item.val,onChange:function(e){updateVal(col,item.id,parseInt(e.target.value)||0);},style:{width:36,fontSize:12,fontWeight:700,textAlign:"center",border:"1px solid #e2e8f0",borderRadius:4,padding:"2px",background:bg??"#fff",color:fontColor}}),
+          React.createElement("button",{onClick:function(){removeItem(col,item.id);},title:"Rimuovi",style:{background:"none",border:"none",color:isTop?"rgba(255,255,255,0.7)":"#fc8181",cursor:"pointer",fontSize:12,padding:"0 2px",flexShrink:0}},"x"));
+      }),
+      adding===col
+        ?React.createElement("div",{style:{display:"flex",gap:4,marginTop:6}},
+            React.createElement("input",{autoFocus:true,value:newName,onChange:function(e){setNewName(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")addItem(col);if(e.key==="Escape")setAdding(null);},placeholder:"Nome...",style:{flex:1,fontSize:12,border:"1px solid #667eea",borderRadius:4,padding:"3px 6px"}}),
+            React.createElement("button",{onClick:function(){addItem(col);},style:{background:"#667eea",color:"#fff",border:"none",borderRadius:4,padding:"3px 8px",cursor:"pointer",fontSize:12}},"OK"),
+            React.createElement("button",{onClick:function(){setAdding(null);setNewName("");},style:{background:"#e2e8f0",border:"none",borderRadius:4,padding:"3px 6px",cursor:"pointer",fontSize:12}},"x"))
+        :React.createElement("button",{onClick:function(){setAdding(col);setNewName("");},style:{marginTop:6,background:"none",border:"1px dashed #cbd5e0",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,color:"#718096",width:"100%"}},"+Aggiungi"),
+      React.createElement("div",{style:{marginTop:10,padding:"4px",borderTop:"1px solid #e2e8f0",fontSize:12,fontWeight:700,color:isPassivo?"#e53e3e":"#38a169"}},
+        "Media: "+(col==="att1"?ma1:col==="pas1"?mp1:col==="att2"?ma2:mp2).toFixed(2)));
+  }
+
+  function renderGrafico(){
+    if(!storico.length)return React.createElement("div",{style:{textAlign:"center",color:"#a0aec0",padding:40,fontSize:14}},"Nessuno snapshot ancora. Clicca 'Salva snapshot' per iniziare.");
+    var W=600;var H=280;var PAD=50;var CW=W-PAD*2;var CH=H-PAD*2;var maxV=10;
+    var series=[
+      {key:"ma1",color:"#38a169",label:"Att. I",bold:false},
+      {key:"mp1",color:"#e53e3e",label:"Pas. I",bold:false},
+      {key:"ma2",color:"#3182ce",label:"Att. II",bold:false},
+      {key:"mp2",color:"#d69e2e",label:"Pas. II",bold:false},
+      {key:"tot",color:"#2d3748",label:"Totale",bold:true},
+    ];
+    var n=storico.length;
+    function px(i){return PAD+i*(CW/(Math.max(n-1,1)));}
+    function py(v){return PAD+CH-(v/maxV)*CH;}
+    var paths=series.map(function(s){
+      var d=storico.map(function(snap,i){var v=snap[s.key]||0;return (i===0?"M":"L")+px(i).toFixed(1)+","+py(v).toFixed(1);}).join(" ");
+      return React.createElement("path",{key:s.key,d:d,fill:"none",stroke:s.color,strokeWidth:s.bold?4:2,strokeLinejoin:"round",strokeDasharray:s.bold?"none":"none"});
+    });
+    var dots=series.map(function(s){
+      return storico.map(function(snap,i){
+        var v=snap[s.key]||0;
+        return React.createElement("g",{key:s.key+i},
+          React.createElement("circle",{cx:px(i),cy:py(v),r:s.bold?6:4,fill:s.color}),
+          s.bold&&React.createElement("text",{x:px(i),y:py(v)-10,textAnchor:"middle",fontSize:10,fontWeight:"bold",fill:s.color},v.toFixed(2)));
+      });
+    });
+    var labels=storico.map(function(snap,i){
+      return React.createElement("text",{key:i,x:px(i),y:H-8,textAnchor:"middle",fontSize:9,fill:"#718096"},snap.data.slice(5));
+    });
+    var ylines=[0,2,4,6,8,10].map(function(v){
+      return React.createElement("g",{key:v},
+        React.createElement("line",{x1:PAD,y1:py(v),x2:W-PAD,y2:py(v),stroke:"#e2e8f0",strokeWidth:1}),
+        React.createElement("text",{x:PAD-4,y:py(v)+4,textAnchor:"end",fontSize:9,fill:"#a0aec0"},v));
+    });
+    var legend=series.map(function(s,si){
+      return React.createElement("g",{key:si,transform:"translate("+(PAD+si*95)+","+(H+10)+")"},
+        React.createElement("rect",{x:0,y:2,width:12,height:s.bold?4:2,fill:s.color}),
+        React.createElement("text",{x:16,y:10,fontSize:11,fontWeight:s.bold?"bold":"normal",fill:"#4a5568"},s.label));
+    });
+    var snapshotList=storico.map(function(snap,i){
+      return React.createElement("div",{key:i,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",borderBottom:"1px solid #f0f0f0",fontSize:12}},
+        React.createElement("span",{style:{color:"#718096"}},snap.data),
+        React.createElement("span",null,"Att.I:",React.createElement("b",null," "+snap.ma1)," Pas.I:",React.createElement("b",null," "+snap.mp1)," Att.II:",React.createElement("b",null," "+snap.ma2)," Pas.II:",React.createElement("b",null," "+snap.mp2)," Tot:",React.createElement("b",{style:{color:"#2d3748"}},snap.tot!=null?(" "+snap.tot):" -")),
+        React.createElement("button",{onClick:function(){deleteSnapshot(i);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:11}},"x"));
+    });
+    return React.createElement("div",null,
+      React.createElement("svg",{viewBox:"0 0 "+(W)+" "+(H+30),style:{width:"100%",maxWidth:W}},
+        React.createElement("g",null,...ylines),
+        React.createElement("g",null,...paths),
+        React.createElement("g",null,...dots.flat()),
+        React.createElement("g",null,...labels),
+        React.createElement("g",null,...legend)),
+      React.createElement("div",{style:{marginTop:16,background:"#f7fafc",borderRadius:10,overflow:"hidden",border:"1px solid #e2e8f0"}},
+        React.createElement("div",{style:{padding:"8px 10px",fontWeight:700,fontSize:12,color:"#4a5568",borderBottom:"1px solid #e2e8f0"}},"Snapshot salvati"),
+        React.createElement("div",null,...snapshotList)));
+  }
+
+  return React.createElement("div",{style:{maxWidth:1100,margin:"0 auto",padding:"20px 16px"}},
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
+      React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Asset Immateriali"),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("button",{onClick:function(){setView("tabella");},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:view==="tabella"?"#2d3748":"#e2e8f0",color:view==="tabella"?"#fff":"#4a5568"}},"Tabella"),
+        React.createElement("button",{onClick:function(){setView("grafico");},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:view==="grafico"?"#2d3748":"#e2e8f0",color:view==="grafico"?"#fff":"#4a5568"}},"Grafico storico"),
+        React.createElement("button",{onClick:salvaStorico,style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:"#667eea",color:"#fff"}},"Salva snapshot"))),
+    view==="grafico"
+      ?React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}},renderGrafico())
+      :React.createElement("div",null,
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12,marginBottom:20}},
+            renderCol(att1,"att1",false),
+            renderCol(pas1,"pas1",true),
+            renderCol(att2,"att2",false),
+            renderCol(pas2,"pas2",true)),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:12}},
+            React.createElement("div",{style:{background:bilColor(bil1),borderRadius:10,padding:"12px 16px",textAlign:"center"}},
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:bilTextColor(bil1),marginBottom:4}},"BILANCIO I LIVELLO"),
+              React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(bil1)}},bil1.toFixed(2))),
+            React.createElement("div",{style:{borderRadius:10,padding:"12px 16px",textAlign:"center",background:bilColor(totale),gridColumn:"2/4"}},
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:bilTextColor(totale),marginBottom:4}},"TOTALE"),
+              React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(totale)}},totale.toFixed(2))),
+            React.createElement("div",{style:{background:bilColor(bil2),borderRadius:10,padding:"12px 16px",textAlign:"center"}},
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:bilTextColor(bil2),marginBottom:4}},"BILANCIO II LIVELLO"),
+              React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(bil2)}},bil2.toFixed(2))))));
 }
 
 function TimerSection(){
@@ -779,6 +995,7 @@ function GoalsSection(props){
   var goals=props.goals;var setGoals=props.setGoals;var pushUndo=props.pushUndo||function(){};
   var _s=useState("personale");var tab=_s[0];var setTab=_s[1];
   var _s_drag=useState(null);var dragCross=_s_drag[0];var setDragCross=_s_drag[1];
+  var _s_amenu=useState(null);var actionMenu=_s_amenu[0];var setActionMenu=_s_amenu[1];
   var _s2=useState({personale:"",lavorativa:"",artistica:""});var ng=_s2[0];var setNg=_s2[1];
   var _s3=useState("breve");var nt=_s3[0];var setNt=_s3[1];
   var _s4=useState(null);var noteTarget=_s4[0];var setNoteTarget=_s4[1];
@@ -790,18 +1007,23 @@ function GoalsSection(props){
   var tl={breve:"Breve termine",medio:"Medio termine",lungo:"Lungo termine"};
   var tc={breve:"#e53e3e",medio:"#d69e2e",lungo:"#38a169"};
   var cl={personale:"Personale",lavorativa:"Lavorativa",artistica:"Artistica"};
-  function add(){var v=ng[tab].trim();if(!v)return;setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][nt]=(n[tab][nt]||[]).concat([{text:v,notes:"",prio:newPrio}]);return n;});setNg(function(ng2){var r=Object.assign({},ng2);r[tab]="";return r;});setNewPrio(null);}
+  function add(){var v=ng[tab].trim();if(!v)return;setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][nt]=(n[tab][nt]||[]).concat([{id:mkId(),text:v,notes:"",prio:newPrio}]);return n;});setNg(function(ng2){var r=Object.assign({},ng2);r[tab]="";return r;});setNewPrio(null);}
   function rem(term,i){pushUndo("rimozione obiettivo");setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term].splice(i,1);return n;});}
   function reorder(term,na){pushUndo("riordino obiettivi");setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term]=na;return n;});}
-  function moveToTerm(item,fromTerm,toTerm){
+  function moveToTerm(itemId,fromTerm,toTerm,fallbackIdx){
     if(fromTerm===toTerm)return;
     pushUndo("sposta obiettivo tra categorie");
     setGoals(function(g){
       var n=JSON.parse(JSON.stringify(g));
-      n[tab][fromTerm]=n[tab][fromTerm].filter(function(x){return x.id!==item.id;});
-      n[tab][toTerm]=[item].concat(n[tab][toTerm]||[]);
+      var fi=n[tab][fromTerm].findIndex(function(x){return x.id===itemId;});
+      if(fi<0)fi=fallbackIdx;
+      if(fi<0||fi>=n[tab][fromTerm].length)return g;
+      var moved=n[tab][fromTerm].splice(fi,1)[0];
+      if(!n[tab][toTerm])n[tab][toTerm]=[];
+      n[tab][toTerm]=[moved].concat(n[tab][toTerm]);
       return n;
     });
+    setActionMenu(null);
   }
   function saveItemText(term,i,txt){setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term][i]=Object.assign({},n[tab][term][i],{text:txt});return n;});setEditTarget(null);}
   function saveItemNote(term,i,note){setGoals(function(g){var n=JSON.parse(JSON.stringify(g));n[tab][term][i]=Object.assign({},n[tab][term][i],{notes:note});return n;});}
@@ -824,7 +1046,17 @@ function GoalsSection(props){
               ?React.createElement("div",{style:{flex:1,display:"flex",gap:8}},React.createElement("input",{autoFocus:true,value:editVal,onChange:function(e){setEditVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")saveItemText(term,i,editVal);if(e.key==="Escape")setEditTarget(null);},style:{flex:1,border:"2px solid #667eea",borderRadius:8,padding:"5px 8px",fontSize:14}}),React.createElement("button",{onClick:function(){saveItemText(term,i,editVal);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"4px 12px",cursor:"pointer",fontWeight:700}},"OK"))
               :React.createElement("span",{onClick:function(){setEditTarget([term,i]);setEditVal(item.text);},style:{flex:1,fontSize:14,color:"#2d3748",cursor:"pointer"}},item.text),
             React.createElement("button",{onClick:function(){setNoteTarget([term,i]);},style:{background:item.notes?"#667eea":"#e2e8f0",color:item.notes?"#fff":"#718096",border:"none",borderRadius:8,padding:"3px 10px",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}},item.notes?"note":"+ nota"),
-            React.createElement("button",{onClick:function(){if(props.onAddTodo)props.onAddTodo({id:mkId(),text:item.text,done:false,notes:item.notes||""});rem(term,i);},title:"Aggiungi a To Do e rimuovi",style:{background:"#f0fff4",border:"1px solid #9ae6b4",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:16,color:"#38a169",lineHeight:1,flexShrink:0}},"➡"),
+            React.createElement("div",{style:{position:"relative",flexShrink:0}},
+              React.createElement("button",{onClick:function(e){e.stopPropagation();
+                setActionMenu(actionMenu&&actionMenu.itemId===(item.id||i)&&actionMenu.term===term?null:{itemId:item.id||("idx_"+i),term:term,idx:i,text:item.text,notes:item.notes||""});
+              },title:"Opzioni spostamento",style:{background:"#f0fff4",border:"1px solid #9ae6b4",borderRadius:8,padding:"3px 8px",cursor:"pointer",fontSize:16,color:"#38a169",lineHeight:1}},"➡"),
+              actionMenu&&actionMenu.term===term&&actionMenu.idx===i&&React.createElement("div",{style:{position:"absolute",top:"110%",right:0,background:"#fff",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,0.15)",border:"1px solid #e2e8f0",zIndex:500,minWidth:190,padding:"6px 0"}},
+                React.createElement("div",{style:{fontSize:11,color:"#a0aec0",padding:"4px 14px 6px",fontWeight:700}},"➡ SPOSTA IN..."),
+                React.createElement("div",{onClick:function(){pushUndo("sposta a todo");if(props.onAddTodo)props.onAddTodo({id:mkId(),text:actionMenu.text,done:false,notes:actionMenu.notes});rem(term,actionMenu.idx);setActionMenu(null);},style:{padding:"8px 14px",cursor:"pointer",fontSize:13,color:"#2d3748"},onMouseEnter:function(e){e.currentTarget.style.background="#f7fafc";},onMouseLeave:function(e){e.currentTarget.style.background="";}},"➡ To Do list"),
+                term!=="breve"&&React.createElement("div",{onClick:function(){moveToTerm(actionMenu.itemId,actionMenu.term,"breve",actionMenu.idx);},style:{padding:"8px 14px",cursor:"pointer",fontSize:13,color:"#2d3748"},onMouseEnter:function(e){e.currentTarget.style.background="#f7fafc";},onMouseLeave:function(e){e.currentTarget.style.background="";}},"⬆️ Breve termine"),
+                term!=="medio"&&React.createElement("div",{onClick:function(){moveToTerm(actionMenu.itemId,actionMenu.term,"medio",actionMenu.idx);},style:{padding:"8px 14px",cursor:"pointer",fontSize:13,color:"#2d3748"},onMouseEnter:function(e){e.currentTarget.style.background="#f7fafc";},onMouseLeave:function(e){e.currentTarget.style.background="";}},"➡️ Medio termine"),
+                term!=="lungo"&&React.createElement("div",{onClick:function(){moveToTerm(actionMenu.itemId,actionMenu.term,"lungo",actionMenu.idx);},style:{padding:"8px 14px",cursor:"pointer",fontSize:13,color:"#2d3748"},onMouseEnter:function(e){e.currentTarget.style.background="#f7fafc";},onMouseLeave:function(e){e.currentTarget.style.background="";}},"⬇️ Lungo termine"),
+                React.createElement("div",{onClick:function(){setActionMenu(null);},style:{padding:"6px 14px",cursor:"pointer",fontSize:12,color:"#a0aec0",borderTop:"1px solid #f0f0f0",marginTop:2}},"Annulla"))),
             React.createElement("button",{onClick:function(){rem(term,i);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",cursor:"pointer",fontSize:13,fontWeight:700,borderRadius:8,padding:"3px 10px",flexShrink:0,marginLeft:4}},"x"));}
         }));}),
     React.createElement("div",{style:{background:"#f7fafc",borderRadius:12,padding:16,border:"1px dashed #cbd5e0"}},
@@ -901,7 +1133,7 @@ function SettingsPanel(props){
   var _s=useState("main");var sub=_s[0];var setSub=_s[1];
   var _s2=useState(false);var confirmReset=_s2[0];var setConfirmReset=_s2[1];
   var _s3=useState(null);var pendingTheme=_s3[0];var setPendingTheme=_s3[1];
-  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","dashboard"];
+  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","dashboard"];
   function handleGlobalTheme(theme){var has=Object.values(settings.tabs).some(function(t){return t.headerTheme||t.bodyTheme;});if(has){setPendingTheme(theme);setConfirmReset(true);}else setSettings(function(s){return Object.assign({},s,{theme:theme});});}
   function confirmResetFn(){var tabs={};Object.keys(settings.tabs).forEach(function(k){tabs[k]=Object.assign({},settings.tabs[k],{headerTheme:null,bodyTheme:null});});setSettings(function(s){return Object.assign({},s,{theme:pendingTheme,tabs:tabs});});setConfirmReset(false);setPendingTheme(null);}
   function keepFn(){setSettings(function(s){return Object.assign({},s,{theme:pendingTheme});});setConfirmReset(false);setPendingTheme(null);}
@@ -937,13 +1169,26 @@ function App(){
   var _s13=useState(null);var tabDragSrc=_s13[0];var setTabDragSrc=_s13[1];
   var _s14=useState(null);var tabOrder=_s14[0];var setTabOrder=_s14[1];
   var _s17=useState([]);var undoHistory=_s17[0];var setUndoHistory=_s17[1];
+  var _s_ai=useState(INIT_AI);var aiData=_s_ai[0];var setAiData=_s_ai[1];
   var _s18=useState(false);var saveReady=_s18[0];var setSaveReady=_s18[1];
   var _s18=useState(false);var loadError=_s18[0];var setLoadError=_s18[1];
   var _s15=useState(null);var swipeStartX=_s15[0];var setSwipeStartX=_s15[1];
   var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
 
   useEffect(function(){
-    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2]))setGoals(res[2]);setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);if(res[8])setTabOrder(res[8]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
+    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
+          var g2=JSON.parse(JSON.stringify(res[2]));
+          ["personale","lavorativa","artistica"].forEach(function(area){
+            if(g2[area]){["breve","medio","lungo"].forEach(function(term){
+              if(g2[area][term]){g2[area][term]=g2[area][term].map(function(x){
+                return x.id?x:Object.assign({},x,{id:mkId()});
+              });}
+            });}
+          });
+          setGoals(g2);
+        }setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);if(res[8])setTabOrder(res[8]);var aiLoaded=res[9];
+          if(aiLoaded&&aiLoaded.att1&&aiLoaded.att1.length>0){setAiData(aiLoaded);}
+          else{setAiData(INIT_AI);}var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
         if(window._fbLoadError){setLoadError(true);setLoaded(true);}
         else{setLoaded(true);setTimeout(function(){if(!window._fbLoadError){window._alm_ready=true;setSaveReady(true);}},2000);}});}
     if(window._fbReady){doLoad();}else{window.addEventListener("fbReady",doLoad,{once:true});}
@@ -962,6 +1207,7 @@ function App(){
   useEffect(function(){if(canSave()&&settings)fbSave("alm_settings",settings);},[settings,saveReady]);
   useEffect(function(){if(canSave()&&dismissed)fbSave("alm_dismissed",dismissed);},[dismissed,saveReady]);
   useEffect(function(){if(canSave()&&tabOrder)fbSave("alm_taborder",tabOrder);},[tabOrder,saveReady]);
+  useEffect(function(){if(canSave()&&aiData)fbSave("alm_ai",aiData);},[aiData,saveReady]);
 
   var globalTheme=settings?THEMES[settings.theme]||THEMES.light:THEMES.light;
   var tabCfg=area&&settings&&settings.tabs[area]?settings.tabs[area]:{};
@@ -1050,6 +1296,7 @@ alert("Importazione completata! "+imported+" sezioni principali importate.");}ca
     area==="calendar"?React.createElement(CalendarSection,{events:events,setEvents:setEvents,onAddTodo:handleAddTodo,birthdayImportExt:birthdayImportApp,setBirthdayImportExt:setBirthdayImportApp}):null,
     area==="frasi"?React.createElement(FrasiSection,{phrases:phrases,setPhrases:setPhrases}):null,
     area==="timer"?React.createElement(TimerSection):null,
+    area==="ai"?React.createElement(AISection,{aiData:aiData,setAiData:setAiData}):null,
     area==="dashboard"?React.createElement(Dashboard,{data:data}):null,
     showSettings?React.createElement(SettingsPanel,settingsProps):null,
     hasBanners?React.createElement(BannerOverlay,bannerProps):null
