@@ -56,7 +56,7 @@ const MONTHS_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio
 const ALL_TABS=[
   {k:"todo",l:"To Do"},{k:"obiettivi",l:"Top 10"},{k:"goals",l:"Obiettivi"},
   {k:"personale",l:"Personale"},{k:"lavorativa",l:"Lavoro"},{k:"artistica",l:"Arte"},
-  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"dashboard",l:"Dashboard"},
+  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"am",l:"A.M."},{k:"dashboard",l:"Dashboard"},
 ];
 
 const THEMES={
@@ -92,7 +92,7 @@ const INIT_SETTINGS={
     artistica:{visible:true,home:false,label:"Arte",headerTheme:null,bodyTheme:null},
     calendar:{visible:true,home:false,label:"Calendario",headerTheme:null,bodyTheme:null},
     frasi:{visible:true,home:false,label:"Frasi",headerTheme:null,bodyTheme:null},
-    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
+    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},am:{visible:true,home:false,label:"A.M.",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
   },
   theme:"light",userName:"Alex",weekStart:"monday",
 };
@@ -234,6 +234,7 @@ const INIT_PHRASES=[
 ];
 
 const INIT_EVENTS=[];
+const INIT_AM={"al":[],"ai":[],"pas":[],"storico":[]};
 const INIT_AI={
 "att1":[
   {"id":"a1","name":"Autostima","val":0},{"id":"a2","name":"Positivita ed ottimismo","val":0},
@@ -402,7 +403,7 @@ function TodoSection(props){
 }
 
 function AISection(props){
-  var aiData=props.aiData;var setAiData=props.setAiData;
+  var aiData=props.aiData;var setAiData=props.setAiData;var pushUndo=props.pushUndo||function(){};
   var _sv=useState("tabella");var view=_sv[0];var setView=_sv[1];
   var _se=useState(null);var editing=_se[0];var setEditing=_se[1];
   var _sa=useState(null);var adding=_sa[0];var setAdding=_sa[1];
@@ -418,6 +419,7 @@ function AISection(props){
   function bilTextColor(v){return v>=6.5?"#276749":v>=4?"#744210":"#c53030";}
 
   function updateVal(col,id,val){
+    pushUndo("modifica valore A.I.");
     setAiData(function(d){
       var n=JSON.parse(JSON.stringify(d));
       n[col]=n[col].map(function(x){return x.id===id?Object.assign({},x,{val:Math.max(0,Math.min(10,val))}):x;});
@@ -433,6 +435,7 @@ function AISection(props){
     setEditing(null);
   }
   function removeItem(col,id){
+    pushUndo("rimozione voce A.I.");
     setAiData(function(d){
       var n=JSON.parse(JSON.stringify(d));
       n[col]=n[col].filter(function(x){return x.id!==id;});
@@ -441,6 +444,7 @@ function AISection(props){
   }
   function addItem(col){
     if(!newName.trim())return;
+    pushUndo("aggiunta voce A.I.");
     var newId=col+"_"+Date.now();
     setAiData(function(d){
       var n=JSON.parse(JSON.stringify(d));
@@ -577,6 +581,213 @@ function AISection(props){
             React.createElement("div",{style:{background:bilColor(bil2),borderRadius:10,padding:"12px 16px",textAlign:"center"}},
               React.createElement("div",{style:{fontSize:11,fontWeight:700,color:bilTextColor(bil2),marginBottom:4}},"BILANCIO II LIVELLO"),
               React.createElement("div",{style:{fontSize:28,fontWeight:800,color:bilTextColor(bil2)}},bil2.toFixed(2))))));
+}
+
+function AMSection(props){
+  var amData=props.amData;var setAmData=props.setAmData;var pushUndo=props.pushUndo||function(){};
+  var _sv=useState("tabella");var view=_sv[0];var setView=_sv[1];
+  var _se=useState(null);var editingItem=_se[0];var setEditingItem=_se[1];
+  var _sa=useState(null);var adding=_sa[0];var setAdding=_sa[1];
+  var _sn=useState("");var newName=_sn[0];var setNewName=_sn[1];
+  var _sv2=useState("");var newVal=_sv2[0];var setNewVal=_sv2[1];
+  var _sei=useState(null);var editInline=_sei[0];var setEditInline=_sei[1];
+  var _sev=useState("");var editInlineVal=_sev[0];var setEditInlineVal=_sev[1];
+
+  var al=amData.al||[];
+  var ai=amData.ai||[];
+  var pas=amData.pas||[];
+  var storico=amData.storico||[];
+
+  function sumCol(arr){return arr.reduce(function(s,x){return s+(parseFloat(x.val)||0);},0);}
+  function fmtEur(v){return v.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";}
+
+  var totAL=sumCol(al);
+  var totAI=sumCol(ai);
+  var totPas=sumCol(pas);
+  var totAttivi=totAL+totAI;
+  var patrimonio=totAttivi-totPas;
+
+  function addItem(col){
+    if(!newName.trim())return;
+    pushUndo("aggiunta voce A.M.");
+    var v=parseFloat(newVal.replace(",","."))||0;
+    setAmData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n[col]=(n[col]||[]).concat([{id:col+"_"+Date.now(),name:newName.trim(),val:v}]);
+      return n;
+    });
+    setNewName("");setNewVal("");setAdding(null);
+  }
+  function removeItem(col,id){
+    pushUndo("rimozione voce A.M.");
+    setAmData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n[col]=n[col].filter(function(x){return x.id!==id;});
+      return n;
+    });
+  }
+  function updateItemName(col,id,name){
+    setAmData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n[col]=n[col].map(function(x){return x.id===id?Object.assign({},x,{name:name}):x;});
+      return n;
+    });
+    setEditingItem(null);
+  }
+  function updateItemVal(col,id,val){
+    pushUndo("modifica importo A.M.");
+    var v=parseFloat(String(val).replace(",","."))||0;
+    setAmData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n[col]=n[col].map(function(x){return x.id===id?Object.assign({},x,{val:v}):x;});
+      return n;
+    });
+    setEditInline(null);
+  }
+  function salvaSnapshot(){
+    var snap={
+      data:new Date().toISOString().slice(0,10),
+      al:+totAL.toFixed(2),ai:+totAI.toFixed(2),
+      pas:+totPas.toFixed(2),pat:+patrimonio.toFixed(2)
+    };
+    setAmData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n.storico=(n.storico||[]).concat([snap]);
+      return n;
+    });
+    alert("Snapshot salvato!");
+  }
+  function deleteSnapshot(idx){
+    if(!window.confirm("Eliminare questo snapshot?"))return;
+    setAmData(function(d){
+      var n=JSON.parse(JSON.stringify(d));
+      n.storico=n.storico.filter(function(_,i){return i!==idx;});
+      return n;
+    });
+  }
+
+  function renderColAM(items,col,label,color,isPassivo){
+    return React.createElement("div",{style:{background:"#fff",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,0.07)",flex:1,minWidth:0}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:12}},
+        React.createElement("div",{style:{width:12,height:12,borderRadius:"50%",background:color,flexShrink:0}}),
+        React.createElement("span",{style:{fontSize:14,fontWeight:700,color:"#2d3748"}}),
+        React.createElement("span",{style:{fontSize:15,fontWeight:800,color:"#2d3748"}},label)),
+      items.map(function(item){
+        return React.createElement("div",{key:item.id,style:{display:"flex",alignItems:"center",gap:8,marginBottom:8,padding:"6px 8px",background:"#f7fafc",borderRadius:8,borderLeft:"3px solid "+color}},
+          editingItem&&editingItem[0]===col&&editingItem[1]===item.id
+            ?React.createElement("input",{autoFocus:true,defaultValue:item.name,onBlur:function(e){updateItemName(col,item.id,e.target.value);},onKeyDown:function(e){if(e.key==="Enter")updateItemName(col,item.id,e.target.value);if(e.key==="Escape")setEditingItem(null);},style:{flex:1,fontSize:13,border:"1px solid #667eea",borderRadius:6,padding:"3px 6px"}})
+            :React.createElement("span",{onClick:function(){setEditingItem([col,item.id]);},style:{flex:1,fontSize:13,color:"#2d3748",cursor:"pointer"}},item.name),
+          editInline&&editInline[0]===col&&editInline[1]===item.id
+            ?React.createElement("input",{autoFocus:true,defaultValue:item.val,onBlur:function(e){updateItemVal(col,item.id,e.target.value);},onKeyDown:function(e){if(e.key==="Enter")updateItemVal(col,item.id,e.target.value);if(e.key==="Escape")setEditInline(null);},style:{width:100,fontSize:13,fontWeight:700,border:"1px solid #667eea",borderRadius:6,padding:"3px 6px",textAlign:"right"}})
+            :React.createElement("span",{onClick:function(){setEditInline([col,item.id]);setEditInlineVal(String(item.val));},style:{fontSize:13,fontWeight:700,color:isPassivo?"#e53e3e":"#2d3748",cursor:"pointer",minWidth:80,textAlign:"right"}},fmtEur(item.val||0)),
+          React.createElement("button",{onClick:function(){removeItem(col,item.id);},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:14,padding:"0 2px",flexShrink:0}},"x"));
+      }),
+      adding===col
+        ?React.createElement("div",{style:{marginTop:8,display:"flex",flexDirection:"column",gap:6}},
+            React.createElement("input",{autoFocus:true,value:newName,onChange:function(e){setNewName(e.target.value);},placeholder:"Nome voce...",style:{fontSize:13,border:"1px solid #667eea",borderRadius:6,padding:"5px 8px"}}),
+            React.createElement("div",{style:{display:"flex",gap:6}},
+              React.createElement("input",{value:newVal,onChange:function(e){setNewVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")addItem(col);},placeholder:"Importo €",type:"number",style:{flex:1,fontSize:13,border:"1px solid #667eea",borderRadius:6,padding:"5px 8px"}}),
+              React.createElement("button",{onClick:function(){addItem(col);},style:{background:"#667eea",color:"#fff",border:"none",borderRadius:6,padding:"5px 12px",cursor:"pointer",fontWeight:700}},"OK"),
+              React.createElement("button",{onClick:function(){setAdding(null);},style:{background:"#e2e8f0",border:"none",borderRadius:6,padding:"5px 10px",cursor:"pointer"}},"x")))
+        :React.createElement("button",{onClick:function(){setAdding(col);setNewName("");setNewVal("");},style:{marginTop:8,width:"100%",background:"none",border:"1px dashed #cbd5e0",borderRadius:8,padding:"6px",cursor:"pointer",fontSize:12,color:"#718096"}},"+Aggiungi"),
+      React.createElement("div",{style:{marginTop:12,paddingTop:8,borderTop:"2px solid "+color,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+        React.createElement("span",{style:{fontSize:12,fontWeight:600,color:"#718096"}},"TOTALE "+label.toUpperCase()),
+        React.createElement("span",{style:{fontSize:16,fontWeight:800,color:isPassivo?"#e53e3e":color}},fmtEur(isPassivo?totPas:col==="al"?totAL:totAI))));
+  }
+
+  function renderGrafico(){
+    if(!storico.length)return React.createElement("div",{style:{textAlign:"center",color:"#a0aec0",padding:40,fontSize:14}},"Nessuno snapshot ancora. Clicca 'Salva snapshot' per iniziare.");
+    var W=600;var H=280;var PAD=60;var CW=W-PAD*2;var CH=H-PAD*2;
+    var allVals=storico.map(function(s){return Math.max(s.al,s.ai,Math.abs(s.pat));});
+    var maxV=Math.max.apply(null,allVals)*1.1||1;
+    var minV=Math.min.apply(null,storico.map(function(s){return Math.min(0,s.pat,-s.pas);}))*1.1;
+    var range=maxV-minV;
+    var series=[
+      {key:"al",color:"#38a169",label:"Att. Liquidi",bold:false},
+      {key:"ai",color:"#3182ce",label:"Att. Immobili",bold:false},
+      {key:"pas",color:"#e53e3e",label:"Passivi",bold:false},
+      {key:"pat",color:"#2d3748",label:"Patrimonio",bold:true},
+    ];
+    var n=storico.length;
+    function px(i){return PAD+i*(CW/(Math.max(n-1,1)));}
+    function py(v){return PAD+CH-((v-minV)/range)*CH;}
+    function graphVal(s,snap){return s.key==="pas"?-snap[s.key]:snap[s.key];}
+    var paths=series.map(function(s){
+      var d=storico.map(function(snap,i){return (i===0?"M":"L")+px(i).toFixed(1)+","+py(graphVal(s,snap)).toFixed(1);}).join(" ");
+      return React.createElement("path",{key:s.key,d:d,fill:"none",stroke:s.color,strokeWidth:s.bold?4:2,strokeLinejoin:"round"});
+    });
+    var dots=series.map(function(s){
+      return storico.map(function(snap,i){
+        var gv=graphVal(s,snap);
+        return React.createElement("g",{key:s.key+i},
+          React.createElement("circle",{cx:px(i),cy:py(gv),r:s.bold?6:4,fill:s.color}),
+          s.bold&&React.createElement("text",{x:px(i),y:py(gv)-10,textAnchor:"middle",fontSize:10,fontWeight:"bold",fill:s.color},fmtEur(snap[s.key])));
+      });
+    });
+    var labels=storico.map(function(snap,i){
+      return React.createElement("text",{key:i,x:px(i),y:H-8,textAnchor:"middle",fontSize:9,fill:"#718096"},snap.data.slice(5));
+    });
+    var ylines=5;
+    var gridLines=Array.from({length:ylines+1},function(_,yi){
+      var v=minV+(range/ylines)*yi;
+      return React.createElement("g",{key:yi},
+        React.createElement("line",{x1:PAD,y1:py(v),x2:W-PAD,y2:py(v),stroke:"#e2e8f0",strokeWidth:1}),
+        React.createElement("text",{x:PAD-4,y:py(v)+4,textAnchor:"end",fontSize:8,fill:"#a0aec0"},Math.round(v/1000)+"k"));
+    });
+    var legend=series.map(function(s,si){
+      return React.createElement("g",{key:si,transform:"translate("+(PAD+si*130)+","+(H+12)+")"},
+        React.createElement("rect",{x:0,y:3,width:14,height:s.bold?4:2,fill:s.color}),
+        React.createElement("text",{x:18,y:11,fontSize:11,fontWeight:s.bold?"bold":"normal",fill:"#4a5568"},s.label));
+    });
+    var snapshotList=storico.map(function(snap,i){
+      return React.createElement("div",{key:i,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",borderBottom:"1px solid #f0f0f0",fontSize:12,flexWrap:"wrap",gap:4}},
+        React.createElement("span",{style:{color:"#718096",flexShrink:0}},snap.data),
+        React.createElement("span",{style:{display:"flex",gap:10,flexWrap:"wrap"}},
+          React.createElement("span",null,"AL: ",React.createElement("b",{style:{color:"#38a169"}},fmtEur(snap.al))),
+          React.createElement("span",null,"AI: ",React.createElement("b",{style:{color:"#3182ce"}},fmtEur(snap.ai))),
+          React.createElement("span",null,"Pas: ",React.createElement("b",{style:{color:"#e53e3e"}},fmtEur(snap.pas))),
+          React.createElement("span",null,"Pat: ",React.createElement("b",{style:{color:"#2d3748",fontWeight:800}},fmtEur(snap.pat)))),
+        React.createElement("button",{onClick:function(){deleteSnapshot(i);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:11,flexShrink:0}},"x"));
+    });
+    return React.createElement("div",null,
+      React.createElement("svg",{viewBox:"0 0 "+W+" "+(H+30),style:{width:"100%",maxWidth:W}},
+        React.createElement("g",null,...gridLines),
+        React.createElement("g",null,...paths),
+        React.createElement("g",null,...dots.flat()),
+        React.createElement("g",null,...labels),
+        React.createElement("g",null,...legend)),
+      React.createElement("div",{style:{marginTop:16,background:"#f7fafc",borderRadius:10,overflow:"hidden",border:"1px solid #e2e8f0"}},
+        React.createElement("div",{style:{padding:"8px 12px",fontWeight:700,fontSize:12,color:"#4a5568",borderBottom:"1px solid #e2e8f0"}},"Snapshot salvati"),
+        React.createElement("div",null,...snapshotList)));
+  }
+
+  var patColor=patrimonio>=0?"#276749":"#c53030";
+  var patBg=patrimonio>=0?"#f0fff4":"#fff5f5";
+
+  return React.createElement("div",{style:{maxWidth:900,margin:"0 auto",padding:"20px 16px"}},
+    React.createElement("div",{style:{display:"flex",flexWrap:"wrap",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:20}},
+      React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Stato Patrimoniale"),
+      React.createElement("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
+        React.createElement("button",{onClick:function(){setView("tabella");},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:view==="tabella"?"#2d3748":"#e2e8f0",color:view==="tabella"?"#fff":"#4a5568"}},"Tabella"),
+        React.createElement("button",{onClick:function(){setView("grafico");},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:view==="grafico"?"#2d3748":"#e2e8f0",color:view==="grafico"?"#fff":"#4a5568"}},"Grafico storico"),
+        React.createElement("button",{onClick:salvaSnapshot,style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:"#667eea",color:"#fff"}},"Salva snapshot"))),
+    view==="grafico"
+      ?React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,boxShadow:"0 2px 12px rgba(0,0,0,0.08)"}},renderGrafico())
+      :React.createElement("div",null,
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:16,marginBottom:20}},
+            renderColAM(al,"al","Attivi Liquidi","#38a169",false),
+            renderColAM(ai,"ai","Attivi Immobili","#3182ce",false),
+            renderColAM(pas,"pas","Passivi","#e53e3e",true)),
+          React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12}},
+            React.createElement("div",{style:{background:"#f0fff4",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"2px solid #9ae6b4"}},
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:"#276749",marginBottom:4}},"TOTALE ATTIVI"),
+              React.createElement("div",{style:{fontSize:22,fontWeight:800,color:"#276749"}},fmtEur(totAttivi))),
+            React.createElement("div",{style:{background:"#fff5f5",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"2px solid #feb2b2"}},
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:"#c53030",marginBottom:4}},"TOTALE PASSIVI"),
+              React.createElement("div",{style:{fontSize:22,fontWeight:800,color:"#c53030"}},fmtEur(totPas))),
+            React.createElement("div",{style:{background:patBg,borderRadius:12,padding:"14px 16px",textAlign:"center",border:"3px solid "+patColor,gridColumn:"span 1"}},
+              React.createElement("div",{style:{fontSize:11,fontWeight:700,color:patColor,marginBottom:4}},"PATRIMONIO NETTO"),
+              React.createElement("div",{style:{fontSize:28,fontWeight:800,color:patColor}},fmtEur(patrimonio))))));
 }
 
 function TimerSection(){
@@ -1134,7 +1345,7 @@ function SettingsPanel(props){
   var _s=useState("main");var sub=_s[0];var setSub=_s[1];
   var _s2=useState(false);var confirmReset=_s2[0];var setConfirmReset=_s2[1];
   var _s3=useState(null);var pendingTheme=_s3[0];var setPendingTheme=_s3[1];
-  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","dashboard"];
+  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","am","dashboard"];
   function handleGlobalTheme(theme){var has=Object.values(settings.tabs).some(function(t){return t.headerTheme||t.bodyTheme;});if(has){setPendingTheme(theme);setConfirmReset(true);}else setSettings(function(s){return Object.assign({},s,{theme:theme});});}
   function confirmResetFn(){var tabs={};Object.keys(settings.tabs).forEach(function(k){tabs[k]=Object.assign({},settings.tabs[k],{headerTheme:null,bodyTheme:null});});setSettings(function(s){return Object.assign({},s,{theme:pendingTheme,tabs:tabs});});setConfirmReset(false);setPendingTheme(null);}
   function keepFn(){setSettings(function(s){return Object.assign({},s,{theme:pendingTheme});});setConfirmReset(false);setPendingTheme(null);}
@@ -1171,13 +1382,14 @@ function App(){
   var _s14=useState(null);var tabOrder=_s14[0];var setTabOrder=_s14[1];
   var _s17=useState([]);var undoHistory=_s17[0];var setUndoHistory=_s17[1];
   var _s_ai=useState(INIT_AI);var aiData=_s_ai[0];var setAiData=_s_ai[1];
+  var _s_am=useState(INIT_AM);var amData=_s_am[0];var setAmData=_s_am[1];
   var _s18=useState(false);var saveReady=_s18[0];var setSaveReady=_s18[1];
   var _s18=useState(false);var loadError=_s18[0];var setLoadError=_s18[1];
   var _s15=useState(null);var swipeStartX=_s15[0];var setSwipeStartX=_s15[1];
   var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
 
   useEffect(function(){
-    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
+    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI),fbLoad("alm_am",INIT_AM)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
           var g2=JSON.parse(JSON.stringify(res[2]));
           ["personale","lavorativa","artistica"].forEach(function(area){
             if(g2[area]){["breve","medio","lungo"].forEach(function(term){
@@ -1189,7 +1401,8 @@ function App(){
           setGoals(g2);
         }setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);if(res[8])setTabOrder(res[8]);var aiLoaded=res[9];
           if(aiLoaded&&aiLoaded.att1&&aiLoaded.att1.length>0){setAiData(aiLoaded);}
-          else{setAiData(INIT_AI);}var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
+          else{setAiData(INIT_AI);}
+          if(res[10]&&(res[10].al||res[10].ai||res[10].pas))setAmData(res[10]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
         if(window._fbLoadError){setLoadError(true);setLoaded(true);}
         else{setLoaded(true);setTimeout(function(){if(!window._fbLoadError){window._alm_ready=true;setSaveReady(true);}},2000);}});}
     if(window._fbReady){doLoad();}else{window.addEventListener("fbReady",doLoad,{once:true});}
@@ -1209,6 +1422,7 @@ function App(){
   useEffect(function(){if(canSave()&&dismissed)fbSave("alm_dismissed",dismissed);},[dismissed,saveReady]);
   useEffect(function(){if(canSave()&&tabOrder)fbSave("alm_taborder",tabOrder);},[tabOrder,saveReady]);
   useEffect(function(){if(canSave()&&aiData)fbSave("alm_ai",aiData);},[aiData,saveReady]);
+  useEffect(function(){if(canSave()&&amData)fbSave("alm_am",amData);},[amData,saveReady]);
 
   var globalTheme=settings?THEMES[settings.theme]||THEMES.light:THEMES.light;
   var tabCfg=area&&settings&&settings.tabs[area]?settings.tabs[area]:{};
@@ -1219,7 +1433,7 @@ function App(){
   var visibleBanners=bannerIgnored?[]:banners;
 
   function pushUndo(label){
-    var snap={label:label||"azione",todos:JSON.parse(JSON.stringify(todos||[])),goals:JSON.parse(JSON.stringify(goals||{})),data:JSON.parse(JSON.stringify(data||{})),objectives:JSON.parse(JSON.stringify(objectives||[])),events:JSON.parse(JSON.stringify(events||[])),phrases:(phrases||[]).slice()};
+    var snap={label:label||"azione",todos:JSON.parse(JSON.stringify(todos||[])),goals:JSON.parse(JSON.stringify(goals||{})),data:JSON.parse(JSON.stringify(data||{})),objectives:JSON.parse(JSON.stringify(objectives||[])),events:JSON.parse(JSON.stringify(events||[])),phrases:(phrases||[]).slice(),aiData:JSON.parse(JSON.stringify(aiData||{})),amData:JSON.parse(JSON.stringify(amData||{}))};
     setUndoHistory(function(h){return h.slice(-19).concat([snap]);});
   }
   function handleUndo(){
@@ -1232,6 +1446,8 @@ function App(){
       if(snap.objectives!==undefined)setObjectives(snap.objectives);
       if(snap.events!==undefined)setEvents(snap.events);
       if(snap.phrases!==undefined)setPhrases(snap.phrases);
+      if(snap.aiData!==undefined)setAiData(snap.aiData);
+      if(snap.amData!==undefined)setAmData(snap.amData);
       return h.slice(0,-1);
     });
   }
@@ -1297,7 +1513,8 @@ alert("Importazione completata! "+imported+" sezioni principali importate.");}ca
     area==="calendar"?React.createElement(CalendarSection,{events:events,setEvents:setEvents,onAddTodo:handleAddTodo,birthdayImportExt:birthdayImportApp,setBirthdayImportExt:setBirthdayImportApp}):null,
     area==="frasi"?React.createElement(FrasiSection,{phrases:phrases,setPhrases:setPhrases}):null,
     area==="timer"?React.createElement(TimerSection):null,
-    area==="ai"?React.createElement(AISection,{aiData:aiData,setAiData:setAiData}):null,
+    area==="ai"?React.createElement(AISection,{aiData:aiData,setAiData:setAiData,pushUndo:pushUndo}):null,
+    area==="am"?React.createElement(AMSection,{amData:amData,setAmData:setAmData,pushUndo:pushUndo}):null,
     area==="dashboard"?React.createElement(Dashboard,{data:data}):null,
     showSettings?React.createElement(SettingsPanel,settingsProps):null,
     hasBanners?React.createElement(BannerOverlay,bannerProps):null
