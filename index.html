@@ -281,7 +281,7 @@ function todayFormatted(){var d=new Date();return DAYS_IT[d.getDay()]+" "+d.getD
 function getPhraseForToday(phrases){if(!phrases||!phrases.length)return null;var d=new Date();var seed=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();return phrases[seed%phrases.length];}
 const EVENT_PALETTE=["#3182ce","#d69e2e","#e53e3e","#38a169","#805ad5","#dd6b20","#319795","#d53f8c","#2b6cb0","#744210"];
 const RECUR_COLORS=["#3182ce","#d69e2e","#e53e3e","#38a169","#805ad5","#dd6b20","#319795","#d53f8c","#2b6cb0","#744210"];
-const EVENT_ICONS=[{k:"calendar",e:"📅"},{k:"cake",e:"🎂"},{k:"plane",e:"✈️"},{k:"soccer",e:"⚽"},{k:"popcorn",e:"🍿"},{k:"beach",e:"🏖️"},{k:"music",e:"🎵"},{k:"food",e:"🍽️"},{k:"gift",e:"🎁"},{k:"heart",e:"❤️"},{k:"star",e:"⭐"},{k:"doctor",e:"🏥"},{k:"car",e:"🚗"},{k:"house",e:"🏠"},{k:"money",e:"💰"},{k:"gym",e:"🏋️"},{k:"pizza",e:"🍕"},{k:"calc",e:"📱"},{k:"meeting",e:"👥"},{k:"phone",e:"📞"},{k:"coffee",e:"☕"},{k:"book",e:"📚"},{k:"shop",e:"🛒"},{k:"travel",e:"🧳"},{k:"baby",e:"👶"},{k:"pet",e:"🐾"},{k:"sport",e:"🏆"},{k:"photo",e:"📷"},{k:"paint",e:"🎨"},{k:"tools",e:"🔧"},{k:"school",e:"🎓"}];
+const EVENT_ICONS=[{k:"calendar",e:"📅"},{k:"cake",e:"🎂"},{k:"plane",e:"✈️"},{k:"soccer",e:"⚽"},{k:"popcorn",e:"🍿"},{k:"beach",e:"🏖️"},{k:"music",e:"🎵"},{k:"food",e:"🍽️"},{k:"gift",e:"🎁"},{k:"heart",e:"❤️"},{k:"star",e:"⭐"},{k:"doctor",e:"🏥"},{k:"car",e:"🚗"},{k:"house",e:"🏠"},{k:"money",e:"💰"},{k:"gym",e:"🏋️"},{k:"pizza",e:"🍕"},{k:"phone",e:"📞"},{k:"meeting",e:"👥"},{k:"coffee",e:"☕"},{k:"book",e:"📚"},{k:"shop",e:"🛒"},{k:"travel",e:"🧳"},{k:"photo",e:"📷"},{k:"beer",e:"🍺"},{k:"drink",e:"🍸"},{k:"email",e:"✉️"},{k:"doc",e:"📋"},{k:"form",e:"📝"},{k:"bank",e:"🏦"},{k:"chart",e:"📊"},{k:"handshake",e:"🤝"},{k:"clock",e:"⏰"},{k:"phone2",e:"📱"},{k:"sport",e:"🏆"},{k:"paint",e:"🎨"},{k:"tools",e:"🔧"},{k:"school",e:"🎓"},{k:"baby",e:"👶"},{k:"pet",e:"🐾"}];
 function getEventColor(events,evId){var idx=events.findIndex(function(e){return e.id===evId;});return EVENT_PALETTE[((idx<0?0:idx))%EVENT_PALETTE.length];}
 
 function getUpcomingEvents(events,months){
@@ -312,7 +312,7 @@ function DragList(props){
 function PBar(props){var c=colMap[props.color]||"#718096";return React.createElement("div",{style:{background:"#e2e8f0",borderRadius:8,height:10,overflow:"hidden",marginBottom:6}},React.createElement("div",{style:{width:Math.min(100,Math.max(0,props.value))+"%",background:c,height:"100%",borderRadius:8,transition:"width 0.4s"}}));}
 function NoteModal(props){
   var _s=useState(props.notes||"");var val=_s[0];var setVal=_s[1];
-  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16},onClick:props.onClose},
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
     React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,maxWidth:480,width:"100%",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"},onClick:function(e){e.stopPropagation();}},
       React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
         React.createElement("h3",{style:{margin:0,fontSize:17,color:"#2d3748",fontWeight:700}},props.title),
@@ -368,7 +368,7 @@ function TodoSection(props){
   var _s2=useState(null);var noteTarget=_s2[0];var setNoteTarget=_s2[1];
   var _s3=useState(null);var editTarget=_s3[0];var setEditTarget=_s3[1];
   var _s4=useState("");var editVal=_s4[0];var setEditVal=_s4[1];
-  function add(){if(!newText.trim())return;setTodos(function(t){return t.concat([{id:mkId(),text:newText.trim(),done:false,notes:""}]);});setNewText("");}
+  function add(){if(!newText.trim())return;setTodos(function(t){return [{id:mkId(),text:newText.trim(),done:false,notes:""}].concat(t);});setNewText("");}
   function toggle(id){if(props.pushUndo)props.pushUndo("completamento todo");setTodos(function(t){return t.map(function(x){return x.id===id?Object.assign({},x,{done:!x.done}):x;});});}
   function remove(id){if(props.pushUndo)props.pushUndo("rimozione todo");setTodos(function(t){return t.filter(function(x){return x.id!==id;});});}
   function saveNote(id,note){setTodos(function(t){return t.map(function(x){return x.id===id?Object.assign({},x,{notes:note}):x;});});}
@@ -561,6 +561,7 @@ function AISection(props){
       React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Asset Immateriali"),
       React.createElement("div",{style:{display:"flex",gap:8}},
         React.createElement("button",{onClick:function(){setView("tabella");},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:view==="tabella"?"#2d3748":"#e2e8f0",color:view==="tabella"?"#fff":"#4a5568"}},"Tabella"),
+        
         React.createElement("button",{onClick:function(){setView("grafico");},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:view==="grafico"?"#2d3748":"#e2e8f0",color:view==="grafico"?"#fff":"#4a5568"}},"Grafico storico"),
         React.createElement("button",{onClick:salvaStorico,style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:"#667eea",color:"#fff"}},"Salva snapshot"))),
     view==="grafico"
@@ -592,6 +593,11 @@ function AMSection(props){
   var _sv2=useState("");var newVal=_sv2[0];var setNewVal=_sv2[1];
   var _sei=useState(null);var editInline=_sei[0];var setEditInline=_sei[1];
   var _sev=useState("");var editInlineVal=_sev[0];var setEditInlineVal=_sev[1];
+  var _snote=useState(null);var noteTarget=_snote[0];var setNoteTarget=_snote[1];
+  var _snotetxt=useState("");var noteTxt=_snotetxt[0];var setNoteTxt=_snotetxt[1];
+  var _sdrag=useState(null);var dragAM=_sdrag[0];var setDragAM=_sdrag[1];
+  var _sstrat=useState(false);var showStrategia=_sstrat[0];var setShowStrategia=_sstrat[1];
+  var _sstratv=useState(amData.strategia||"");var strategiaTxt=_sstratv[0];var setStrategiaTxt=_sstratv[1];
 
   var al=amData.al||[];
   var ai=amData.ai||[];
@@ -634,6 +640,14 @@ function AMSection(props){
     });
     setEditingItem(null);
   }
+  function updateItemNote(col,id,note){
+    setAmData(function(d){var n=JSON.parse(JSON.stringify(d));n[col]=n[col].map(function(x){return x.id===id?Object.assign({},x,{note:note}):x;});return n;});
+    setNoteTarget(null);
+  }
+  function reorderCol(col,fromIdx,toIdx){
+    if(fromIdx===toIdx)return;
+    setAmData(function(d){var n=JSON.parse(JSON.stringify(d));var arr=n[col].slice();var item=arr.splice(fromIdx,1)[0];arr.splice(toIdx,0,item);n[col]=arr;return n;});
+  }
   function updateItemVal(col,id,val){
     pushUndo("modifica importo A.M.");
     var v=parseFloat(String(val).replace(",","."))||0;
@@ -643,6 +657,10 @@ function AMSection(props){
       return n;
     });
     setEditInline(null);
+  }
+  function salvaStrategia(){
+    setAmData(function(d){return Object.assign({},d,{strategia:strategiaTxt});});
+    setShowStrategia(false);
   }
   function salvaSnapshot(){
     var snap={
@@ -673,14 +691,22 @@ function AMSection(props){
         React.createElement("span",{style:{fontSize:14,fontWeight:700,color:"#2d3748"}}),
         React.createElement("span",{style:{fontSize:15,fontWeight:800,color:"#2d3748"}},label)),
       items.map(function(item){
-        return React.createElement("div",{key:item.id,style:{display:"flex",alignItems:"center",gap:8,marginBottom:8,padding:"6px 8px",background:"#f7fafc",borderRadius:8,borderLeft:"3px solid "+color}},
+        var itemIdx=items.indexOf(item);
+        return React.createElement("div",{key:item.id,draggable:true,
+          onDragStart:function(){setDragAM({col:col,idx:itemIdx});},
+          onDragOver:function(e){e.preventDefault();},
+          onDrop:function(e){e.preventDefault();if(dragAM&&dragAM.col===col&&dragAM.idx!==itemIdx){reorderCol(col,dragAM.idx,itemIdx);setDragAM(null);}},
+          style:{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8,marginBottom:8,padding:"6px 8px",background:"#f7fafc",borderRadius:8,borderLeft:"3px solid "+color,cursor:"grab"}},
           editingItem&&editingItem[0]===col&&editingItem[1]===item.id
             ?React.createElement("input",{autoFocus:true,defaultValue:item.name,onBlur:function(e){updateItemName(col,item.id,e.target.value);},onKeyDown:function(e){if(e.key==="Enter")updateItemName(col,item.id,e.target.value);if(e.key==="Escape")setEditingItem(null);},style:{flex:1,fontSize:13,border:"1px solid #667eea",borderRadius:6,padding:"3px 6px"}})
             :React.createElement("span",{onClick:function(){setEditingItem([col,item.id]);},style:{flex:1,fontSize:13,color:"#2d3748",cursor:"pointer"}},item.name),
           editInline&&editInline[0]===col&&editInline[1]===item.id
             ?React.createElement("input",{autoFocus:true,defaultValue:item.val,onBlur:function(e){updateItemVal(col,item.id,e.target.value);},onKeyDown:function(e){if(e.key==="Enter")updateItemVal(col,item.id,e.target.value);if(e.key==="Escape")setEditInline(null);},style:{width:100,fontSize:13,fontWeight:700,border:"1px solid #667eea",borderRadius:6,padding:"3px 6px",textAlign:"right"}})
             :React.createElement("span",{onClick:function(){setEditInline([col,item.id]);setEditInlineVal(String(item.val));},style:{fontSize:13,fontWeight:700,color:isPassivo?"#e53e3e":"#2d3748",cursor:"pointer",minWidth:80,textAlign:"right"}},fmtEur(item.val||0)),
-          React.createElement("button",{onClick:function(){removeItem(col,item.id);},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:14,padding:"0 2px",flexShrink:0}},"x"));
+          React.createElement("button",{onClick:function(){removeItem(col,item.id);},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:14,padding:"0 2px",flexShrink:0}},"x"),
+          React.createElement("button",{onClick:function(){var isOpen=noteTarget&&noteTarget[0]===col&&noteTarget[1]===item.id;
+                if(isOpen){setNoteTarget(null);}else{setNoteTarget([col,item.id]);setNoteTxt(item.note||"");}},style:{background:"none",border:"none",color:"#a0aec0",cursor:"pointer",fontSize:12,padding:"0 2px",flexShrink:0}},item.note?"💬":"+nota"),
+          noteTarget&&noteTarget[0]===col&&noteTarget[1]===item.id&&React.createElement("div",{style:{width:"100%",marginTop:4}},React.createElement("textarea",{value:noteTxt,onChange:function(e){setNoteTxt(e.target.value);},autoFocus:true,placeholder:"Aggiungi nota...",style:{width:"100%",fontSize:12,border:"1px solid #667eea",borderRadius:6,padding:"4px 8px",resize:"vertical",minHeight:60}}),React.createElement("div",{style:{display:"flex",gap:6,marginTop:4}},React.createElement("button",{onClick:function(){updateItemNote(col,item.id,noteTxt);setNoteTarget(null);},style:{background:"#667eea",color:"#fff",border:"none",borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:12,fontWeight:700}},"Salva"),React.createElement("button",{onClick:function(){setNoteTarget(null);},style:{background:"#e2e8f0",border:"none",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12}},"Annulla"))));
       }),
       adding===col
         ?React.createElement("div",{style:{marginTop:8,display:"flex",flexDirection:"column",gap:6}},
@@ -763,12 +789,23 @@ function AMSection(props){
 
   var patColor=patrimonio>=0?"#276749":"#c53030";
   var patBg=patrimonio>=0?"#f0fff4":"#fff5f5";
+  var strategiaPopup=showStrategia&&React.createElement("div",{onClick:function(e){if(e.target===e.currentTarget){salvaStrategia();}},style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+    React.createElement("div",{onClick:function(e){e.stopPropagation();},style:{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:600,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+        React.createElement("h3",{style:{fontSize:18,fontWeight:800,color:"#2d3748",margin:0}},"Strategia Patrimoniale"),
+        React.createElement("button",{onClick:function(){salvaStrategia();},style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#718096"}},"X")),
+      React.createElement("textarea",{value:strategiaTxt,onChange:function(e){setStrategiaTxt(e.target.value);},placeholder:"Scrivi qui la tua strategia patrimoniale...",style:{width:"100%",minHeight:260,fontSize:14,border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",resize:"vertical",lineHeight:1.6,outline:"none",fontFamily:"inherit"}}),
+      React.createElement("div",{style:{display:"flex",justifyContent:"flex-end",gap:10,marginTop:14}},
+        React.createElement("button",{onClick:function(){setShowStrategia(false);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontWeight:600}},"Annulla"),
+        React.createElement("button",{onClick:salvaStrategia,style:{background:"#805ad5",color:"#fff",border:"none",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontWeight:700}},"Salva"))));
 
   return React.createElement("div",{style:{maxWidth:900,margin:"0 auto",padding:"20px 16px"}},
+    strategiaPopup,
     React.createElement("div",{style:{display:"flex",flexWrap:"wrap",justifyContent:"space-between",alignItems:"center",gap:10,marginBottom:20}},
       React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Stato Patrimoniale"),
       React.createElement("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
         React.createElement("button",{onClick:function(){setView("tabella");},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:view==="tabella"?"#2d3748":"#e2e8f0",color:view==="tabella"?"#fff":"#4a5568"}},"Tabella"),
+        React.createElement("button",{onClick:function(){setStrategiaTxt(amData.strategia||"");setShowStrategia(true);},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:"#805ad5",color:"#fff"}},"Strategia"),
         React.createElement("button",{onClick:function(){setView("grafico");},style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:view==="grafico"?"#2d3748":"#e2e8f0",color:view==="grafico"?"#fff":"#4a5568"}},"Grafico storico"),
         React.createElement("button",{onClick:salvaSnapshot,style:{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontWeight:600,fontSize:13,background:"#667eea",color:"#fff"}},"Salva snapshot"))),
     view==="grafico"
@@ -1285,8 +1322,8 @@ function GoalsSection(props){
 }
 
 function Dashboard(props){
-  var data=props.data;var areas=["personale","lavorativa","artistica"];var al={personale:"Personale",lavorativa:"Lavorativa",artistica:"Artistica"};var ac={personale:"#3182ce",lavorativa:"#38a169",artistica:"#d69e2e"};var ack={personale:"blue",lavorativa:"green",artistica:"gold"};
-  return React.createElement("div",{style:{maxWidth:900,margin:"0 auto",padding:"24px 20px"}},React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:20}},"Dashboard Generale"),React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:20}},areas.map(function(area){var objs=data[area];var avg=Math.round(objs.reduce(function(s,o){return s+o.progress;},0)/objs.length);var tot=objs.reduce(function(s,o){return s+o.tasks.length;},0);var don=objs.reduce(function(s,o){return s+o.tasks.filter(function(t){return t.done;}).length;},0);return React.createElement("div",{key:area,style:{background:"#fff",borderRadius:16,padding:20,boxShadow:"0 2px 12px rgba(0,0,0,0.08)",borderTop:"4px solid "+ac[area]}},React.createElement("div",{style:{fontSize:18,fontWeight:800,color:"#2d3748",marginBottom:14}},al[area]),React.createElement("div",{style:{fontSize:36,fontWeight:900,color:ac[area],marginBottom:4}},avg+"%"),React.createElement("div",{style:{fontSize:13,color:"#718096",marginBottom:12}},"avanzamento medio"),React.createElement(PBar,{value:avg,color:ack[area]}),React.createElement("div",{style:{fontSize:13,color:"#4a5568",marginTop:8,marginBottom:14}},don+"/"+tot+" task completati"),objs.map(function(o){return React.createElement("div",{key:o.id,style:{display:"flex",alignItems:"center",gap:8,marginBottom:6}},React.createElement("div",{style:{fontSize:11,color:"#718096",width:110,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0}},o.name.replace("\n"," ")),React.createElement("div",{style:{flex:1,background:"#e2e8f0",borderRadius:4,height:6,overflow:"hidden"}},React.createElement("div",{style:{width:o.progress+"%",background:colMap[o.color]||"#718096",height:"100%",borderRadius:4}})),React.createElement("div",{style:{fontSize:11,color:"#718096",width:30,textAlign:"right"}},o.progress+"%"));}));})));
+  var data=props.data;var onNavigate=props.onNavigate;var areas=["personale","lavorativa","artistica"];var al={personale:"Personale",lavorativa:"Lavorativa",artistica:"Artistica"};var ac={personale:"#3182ce",lavorativa:"#38a169",artistica:"#d69e2e"};var ack={personale:"blue",lavorativa:"green",artistica:"gold"};
+  return React.createElement("div",{style:{maxWidth:900,margin:"0 auto",padding:"24px 20px"}},React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:20}},"Dashboard Generale"),React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:20}},areas.map(function(area){var objs=data[area];var avg=Math.round(objs.reduce(function(s,o){return s+o.progress;},0)/objs.length);var tot=objs.reduce(function(s,o){return s+o.tasks.length;},0);var don=objs.reduce(function(s,o){return s+o.tasks.filter(function(t){return t.done;}).length;},0);return React.createElement("div",{key:area,onClick:function(){if(onNavigate)onNavigate(area);},style:{background:"#fff",borderRadius:16,padding:20,boxShadow:"0 2px 12px rgba(0,0,0,0.08)",borderTop:"4px solid "+ac[area],cursor:"pointer"},onMouseEnter:function(e){e.currentTarget.style.boxShadow="0 4px 20px rgba(0,0,0,0.14)";},onMouseLeave:function(e){e.currentTarget.style.boxShadow="0 2px 12px rgba(0,0,0,0.08)";}},React.createElement("div",{style:{fontSize:18,fontWeight:800,color:"#2d3748",marginBottom:14}},al[area]),React.createElement("div",{style:{fontSize:36,fontWeight:900,color:ac[area],marginBottom:4}},avg+"%"),React.createElement("div",{style:{fontSize:13,color:"#718096",marginBottom:12}},"avanzamento medio"),React.createElement(PBar,{value:avg,color:ack[area]}),React.createElement("div",{style:{fontSize:13,color:"#4a5568",marginTop:8,marginBottom:14}},don+"/"+tot+" task completati"),objs.map(function(o){return React.createElement("div",{key:o.id,style:{display:"flex",alignItems:"center",gap:8,marginBottom:6}},React.createElement("div",{style:{fontSize:11,color:"#718096",width:110,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flexShrink:0}},o.name.replace("\n"," ")),React.createElement("div",{style:{flex:1,background:"#e2e8f0",borderRadius:4,height:6,overflow:"hidden"}},React.createElement("div",{style:{width:o.progress+"%",background:colMap[o.color]||"#718096",height:"100%",borderRadius:4}})),React.createElement("div",{style:{fontSize:11,color:"#718096",width:30,textAlign:"right"}},o.progress+"%"));}));})));
 }
 
 function AreaView(props){
@@ -1515,7 +1552,7 @@ alert("Importazione completata! "+imported+" sezioni principali importate.");}ca
     area==="timer"?React.createElement(TimerSection):null,
     area==="ai"?React.createElement(AISection,{aiData:aiData,setAiData:setAiData,pushUndo:pushUndo}):null,
     area==="am"?React.createElement(AMSection,{amData:amData,setAmData:setAmData,pushUndo:pushUndo}):null,
-    area==="dashboard"?React.createElement(Dashboard,{data:data}):null,
+    area==="dashboard"?React.createElement(Dashboard,{data:data,onNavigate:function(a){setArea(a);}}):null,
     showSettings?React.createElement(SettingsPanel,settingsProps):null,
     hasBanners?React.createElement(BannerOverlay,bannerProps):null
   );
