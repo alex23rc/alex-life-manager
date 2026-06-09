@@ -56,7 +56,7 @@ const MONTHS_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio
 const ALL_TABS=[
   {k:"todo",l:"To Do"},{k:"obiettivi",l:"Top 10"},{k:"goals",l:"Obiettivi"},
   {k:"personale",l:"Personale"},{k:"lavorativa",l:"Lavoro"},{k:"artistica",l:"Arte"},
-  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"am",l:"A.M."},{k:"dashboard",l:"Dashboard"},
+  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"am",l:"A.M."},{k:"note",l:"Note"},{k:"dashboard",l:"Dashboard"},
 ];
 
 const THEMES={
@@ -92,7 +92,7 @@ const INIT_SETTINGS={
     artistica:{visible:true,home:false,label:"Arte",headerTheme:null,bodyTheme:null},
     calendar:{visible:true,home:false,label:"Calendario",headerTheme:null,bodyTheme:null},
     frasi:{visible:true,home:false,label:"Frasi",headerTheme:null,bodyTheme:null},
-    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},am:{visible:true,home:false,label:"A.M.",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
+    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},am:{visible:true,home:false,label:"A.M.",headerTheme:null,bodyTheme:null},note:{visible:true,home:false,label:"Note",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
   },
   theme:"light",userName:"Alex",weekStart:"monday",
 };
@@ -234,6 +234,7 @@ const INIT_PHRASES=[
 ];
 
 const INIT_EVENTS=[];
+const INIT_NOTES={"cats":[],"version":1};
 const INIT_AM={"al":[],"ai":[],"pas":[],"storico":[]};
 const INIT_AI={
 "att1":[
@@ -827,6 +828,273 @@ function AMSection(props){
               React.createElement("div",{style:{fontSize:28,fontWeight:800,color:patColor}},fmtEur(patrimonio))))));
 }
 
+/* ============================================================
+   EDITOR RICH TEXT - NoteEditor
+   ============================================================ */
+function NoteEditor(props){
+  var val=props.value||"";var onChange=props.onChange;
+  var ref=React.useRef(null);
+  var _sc=useState("#000000");var txtColor=_sc[0];var setTxtColor=_sc[1];
+
+  function exec(cmd,arg){
+    document.execCommand(cmd,false,arg||null);
+    if(ref.current)onChange(ref.current.innerHTML);
+  }
+  function handleInput(){if(ref.current)onChange(ref.current.innerHTML);}
+
+  React.useEffect(function(){
+    if(ref.current&&ref.current.innerHTML!==val)ref.current.innerHTML=val;
+  },[]);
+
+  var btnStyle=function(active){return {background:active?"#2d3748":"#e2e8f0",color:active?"#fff":"#2d3748",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:13,fontWeight:600,minWidth:28};};
+
+  return React.createElement("div",{style:{border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}},
+    React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:4,padding:"6px 8px",background:"#f7fafc",borderBottom:"1px solid #e2e8f0",alignItems:"center"}},
+      React.createElement("button",{onMouseDown:function(e){e.preventDefault();exec("bold");},style:btnStyle(false),title:"Grassetto"},"B"),
+      React.createElement("button",{onMouseDown:function(e){e.preventDefault();exec("italic");},style:Object.assign({},btnStyle(false),{fontStyle:"italic"})},"\u0069"),
+      React.createElement("button",{onMouseDown:function(e){e.preventDefault();exec("underline");},style:Object.assign({},btnStyle(false),{textDecoration:"underline"})},"U"),
+      React.createElement("button",{onMouseDown:function(e){e.preventDefault();exec("strikeThrough");},style:Object.assign({},btnStyle(false),{textDecoration:"line-through"})},"S"),
+      React.createElement("span",{style:{width:1,height:20,background:"#e2e8f0",margin:"0 2px"}}),
+      React.createElement("button",{onMouseDown:function(e){e.preventDefault();exec("insertUnorderedList");},style:btnStyle(false),title:"Lista puntata"},"\u2022 Lista"),
+      React.createElement("button",{onMouseDown:function(e){e.preventDefault();exec("insertOrderedList");},style:btnStyle(false),title:"Lista numerata"},"1. Lista"),
+      React.createElement("span",{style:{width:1,height:20,background:"#e2e8f0",margin:"0 2px"}}),
+      React.createElement("input",{type:"color",value:txtColor,onChange:function(e){setTxtColor(e.target.value);},title:"Colore testo",style:{width:28,height:28,border:"none",borderRadius:6,cursor:"pointer",padding:0,background:"none"}}),
+      React.createElement("button",{onMouseDown:function(e){e.preventDefault();exec("foreColor",txtColor);},style:btnStyle(false),title:"Applica colore"},"A"),
+      React.createElement("button",{onMouseDown:function(e){e.preventDefault();exec("removeFormat");},style:btnStyle(false),title:"Rimuovi formattazione"},"T\u20E0"),
+      React.createElement("span",{style:{width:1,height:20,background:"#e2e8f0",margin:"0 2px"}}),
+      React.createElement("button",{onMouseDown:function(e){
+        e.preventDefault();
+        var url=window.prompt("URL del link:");
+        if(url)exec("createLink",url.startsWith("http")?url:"https://"+url);
+      },style:btnStyle(false),title:"Inserisci link"},"\uD83D\uDD17")),
+    React.createElement("div",{
+      ref:ref,
+      contentEditable:true,
+      onInput:handleInput,
+      suppressContentEditableWarning:true,
+      style:{minHeight:120,padding:"10px 12px",fontSize:14,lineHeight:1.6,outline:"none",color:"#2d3748"}
+    }));
+}
+
+/* ============================================================
+   NOTES SECTION
+   ============================================================ */
+function NotesSection(props){
+  var notesData=props.notesData;var setNotesData=props.setNotesData;
+  var pushUndo=props.pushUndo||function(){};
+  var cats=notesData.cats||[];
+
+  /* stati UI */
+  var _sv=useState(null);var openCat=_sv[0];var setOpenCat=_sv[1];
+  var _sv2=useState(null);var openSub=_sv2[0];var setOpenSub=_sv2[1];
+  var _sv3=useState(null);var editingNote=_sv3[0];var setEditingNote=_sv3[1];
+  var _sv4=useState(null);var actionMenu=_sv4[0];var setActionMenu=_sv4[1];
+  var _sv5=useState(null);var renamingCat=_sv5[0];var setRenamingCat=_sv5[1];
+  var _sv6=useState("");var renameVal=_sv6[0];var setRenameVal=_sv6[1];
+
+  /* helpers */
+  function upd(fn){setNotesData(function(d){var n=JSON.parse(JSON.stringify(d));fn(n);return n;});}
+  function newId(){return Math.random().toString(36).slice(2,9);}
+
+  /* CATEGORIE */
+  function addCat(){
+    var name=window.prompt("Nome categoria:");
+    if(!name||!name.trim())return;
+    pushUndo("aggiunta categoria");
+    upd(function(d){d.cats.push({id:newId(),name:name.trim(),notes:[],subs:[]});});
+  }
+  function deleteCat(cid){
+    if(!window.confirm("Eliminare questa categoria e tutto il suo contenuto?"))return;
+    pushUndo("eliminazione categoria");
+    upd(function(d){d.cats=d.cats.filter(function(c){return c.id!==cid;});});
+    if(openCat===cid)setOpenCat(null);
+  }
+  function startRenameCat(cid,name){setRenamingCat(cid);setRenameVal(name);}
+  function saveRenameCat(cid){
+    if(!renameVal.trim())return;
+    pushUndo("rinomina categoria");
+    upd(function(d){var c=d.cats.find(function(c){return c.id===cid;});if(c)c.name=renameVal.trim();});
+    setRenamingCat(null);
+  }
+  function moveCat(cid,dir){
+    pushUndo("sposta categoria");
+    upd(function(d){
+      var i=d.cats.findIndex(function(c){return c.id===cid;});
+      var j=i+dir;
+      if(j<0||j>=d.cats.length)return;
+      var tmp=d.cats[i];d.cats[i]=d.cats[j];d.cats[j]=tmp;
+    });
+  }
+
+  /* SOTTOCATEGORIE */
+  function addSub(cid){
+    var name=window.prompt("Nome sottocategoria:");
+    if(!name||!name.trim())return;
+    pushUndo("aggiunta sottocategoria");
+    upd(function(d){var c=d.cats.find(function(c){return c.id===cid;});if(c){if(!c.subs)c.subs=[];c.subs.push({id:newId(),name:name.trim(),notes:[]});}});
+  }
+  function deleteSub(cid,sid){
+    if(!window.confirm("Eliminare questa sottocategoria e tutto il suo contenuto?"))return;
+    pushUndo("eliminazione sottocategoria");
+    upd(function(d){var c=d.cats.find(function(c){return c.id===cid;});if(c)c.subs=c.subs.filter(function(s){return s.id!==sid;});});
+    if(openSub===sid)setOpenSub(null);
+  }
+  function renameSub(cid,sid){
+    var c=cats.find(function(c){return c.id===cid;});
+    var s=c&&c.subs&&c.subs.find(function(s){return s.id===sid;});
+    var name=window.prompt("Nuovo nome:",s?s.name:"");
+    if(!name||!name.trim())return;
+    pushUndo("rinomina sottocategoria");
+    upd(function(d){var cat=d.cats.find(function(c){return c.id===cid;});var sub=cat&&cat.subs&&cat.subs.find(function(s){return s.id===sid;});if(sub)sub.name=name.trim();});
+  }
+  function moveSub(cid,sid,dir){
+    pushUndo("sposta sottocategoria");
+    upd(function(d){
+      var c=d.cats.find(function(c){return c.id===cid;});if(!c||!c.subs)return;
+      var i=c.subs.findIndex(function(s){return s.id===sid;});
+      var j=i+dir;if(j<0||j>=c.subs.length)return;
+      var tmp=c.subs[i];c.subs[i]=c.subs[j];c.subs[j]=tmp;
+    });
+  }
+
+  /* NOTE */
+  function addNote(cid,sid){
+    pushUndo("aggiunta nota");
+    var note={id:newId(),title:"Nuova nota",body:""};
+    upd(function(d){
+      var c=d.cats.find(function(c){return c.id===cid;});if(!c)return;
+      if(sid){var s=c.subs&&c.subs.find(function(s){return s.id===sid;});if(s){if(!s.notes)s.notes=[];s.notes.push(note);return;}}
+      if(!c.notes)c.notes=[];c.notes.push(note);
+    });
+    setEditingNote({noteId:note.id,cid:cid,sid:sid||null,title:note.title,body:note.body});
+  }
+  function deleteNote(cid,sid,nid){
+    if(!window.confirm("Eliminare questa nota?"))return;
+    pushUndo("eliminazione nota");
+    upd(function(d){
+      var c=d.cats.find(function(c){return c.id===cid;});if(!c)return;
+      if(sid){var s=c.subs&&c.subs.find(function(s){return s.id===sid;});if(s){s.notes=s.notes.filter(function(n){return n.id!==nid;});return;}}
+      c.notes=c.notes.filter(function(n){return n.id!==nid;});
+    });
+    if(editingNote&&editingNote.noteId===nid)setEditingNote(null);
+  }
+  function saveNote(cid,sid,nid,title,body){
+    upd(function(d){
+      var c=d.cats.find(function(c){return c.id===cid;});if(!c)return;
+      var arr=sid?(c.subs&&c.subs.find(function(s){return s.id===sid;})&&c.subs.find(function(s){return s.id===sid;}).notes):c.notes;
+      if(!arr)return;
+      var n=arr.find(function(n){return n.id===nid;});if(n){n.title=title;n.body=body;}
+    });
+    setEditingNote(null);
+  }
+  function moveNote(cid,sid,nid,dir){
+    pushUndo("sposta nota");
+    upd(function(d){
+      var c=d.cats.find(function(c){return c.id===cid;});if(!c)return;
+      var arr=sid?(c.subs&&c.subs.find(function(s){return s.id===sid;})&&c.subs.find(function(s){return s.id===sid;}).notes):c.notes;
+      if(!arr)return;
+      var i=arr.findIndex(function(n){return n.id===nid;});var j=i+dir;
+      if(j<0||j>=arr.length)return;
+      var tmp=arr[i];arr[i]=arr[j];arr[j]=tmp;
+    });
+  }
+  function moveNoteTo(cid,sid,nid,toCid,toSid){
+    pushUndo("sposta nota tra sezioni");
+    upd(function(d){
+      /* rimuovi */
+      var c=d.cats.find(function(c){return c.id===cid;});if(!c)return;
+      var srcArr=sid?(c.subs&&c.subs.find(function(s){return s.id===sid;})&&c.subs.find(function(s){return s.id===sid;}).notes):c.notes;
+      if(!srcArr)return;
+      var idx=srcArr.findIndex(function(n){return n.id===nid;});if(idx<0)return;
+      var note=srcArr.splice(idx,1)[0];
+      /* aggiungi */
+      var tc=d.cats.find(function(c){return c.id===toCid;});if(!tc)return;
+      if(toSid){var ts=tc.subs&&tc.subs.find(function(s){return s.id===toSid;});if(ts){if(!ts.notes)ts.notes=[];ts.notes.push(note);}}
+      else{if(!tc.notes)tc.notes=[];tc.notes.push(note);}
+    });
+    setActionMenu(null);
+  }
+
+  /* RENDER NOTA */
+  function renderNote(note,cid,sid){
+    var isOpen=editingNote&&editingNote.noteId===note.id;
+    return React.createElement("div",{key:note.id,style:{background:"#fff",borderRadius:10,marginBottom:8,boxShadow:"0 1px 6px rgba(0,0,0,0.07)",border:"1px solid #e2e8f0",overflow:"hidden"}},
+      /* header nota */
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",background:"#f7fafc",cursor:"pointer"},onClick:function(){setEditingNote(isOpen?null:{noteId:note.id,cid:cid,sid:sid,title:note.title,body:note.body});}},
+        React.createElement("span",{style:{flex:1,fontSize:14,fontWeight:600,color:"#2d3748"}},note.title||"Nota senza titolo"),
+        React.createElement("div",{style:{display:"flex",gap:4},onClick:function(e){e.stopPropagation();}},
+          React.createElement("button",{onClick:function(){moveNote(cid,sid,note.id,-1);},style:{background:"none",border:"none",cursor:"pointer",color:"#a0aec0",fontSize:14,padding:"2px 4px"}},"\u2191"),
+          React.createElement("button",{onClick:function(){moveNote(cid,sid,note.id,1);},style:{background:"none",border:"none",cursor:"pointer",color:"#a0aec0",fontSize:14,padding:"2px 4px"}},"\u2193"),
+          React.createElement("div",{style:{position:"relative"}},
+            React.createElement("button",{onClick:function(e){e.stopPropagation();setActionMenu(actionMenu&&actionMenu.nid===note.id?null:{nid:note.id,cid:cid,sid:sid});},style:{background:"#f0fff4",border:"1px solid #9ae6b4",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontSize:13,color:"#38a169"}},"\u27A1"),
+            actionMenu&&actionMenu.nid===note.id&&React.createElement("div",{style:{position:"absolute",top:"110%",right:0,background:"#fff",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,0.15)",border:"1px solid #e2e8f0",zIndex:500,minWidth:200,padding:"6px 0"}},
+              React.createElement("div",{style:{fontSize:11,color:"#a0aec0",padding:"4px 14px 6px",fontWeight:700}},"\u27A1 SPOSTA IN..."),
+              cats.map(function(tc){
+                return React.createElement("div",{key:tc.id},
+                  React.createElement("div",{onClick:function(){if(tc.id!==cid||sid)moveNoteTo(cid,sid,note.id,tc.id,null);else setActionMenu(null);},style:{padding:"6px 14px",cursor:"pointer",fontSize:13,color:"#2d3748",fontWeight:600},onMouseEnter:function(e){e.currentTarget.style.background="#f7fafc";},onMouseLeave:function(e){e.currentTarget.style.background="";}},tc.name),
+                  tc.subs&&tc.subs.map(function(ts){
+                    return React.createElement("div",{key:ts.id,onClick:function(){if(tc.id!==cid||ts.id!==sid)moveNoteTo(cid,sid,note.id,tc.id,ts.id);else setActionMenu(null);},style:{padding:"5px 14px 5px 26px",cursor:"pointer",fontSize:12,color:"#718096"},onMouseEnter:function(e){e.currentTarget.style.background="#f7fafc";},onMouseLeave:function(e){e.currentTarget.style.background="";}},"↳ "+ts.name);
+                  }));
+              }),
+              React.createElement("div",{onClick:function(){deleteNote(cid,sid,note.id);setActionMenu(null);},style:{padding:"6px 14px",cursor:"pointer",fontSize:12,color:"#e53e3e",borderTop:"1px solid #f0f0f0",marginTop:2},onMouseEnter:function(e){e.currentTarget.style.background="#fff5f5";},onMouseLeave:function(e){e.currentTarget.style.background="";}},"\uD83D\uDDD1 Elimina nota"),
+              React.createElement("div",{onClick:function(){setActionMenu(null);},style:{padding:"5px 14px",cursor:"pointer",fontSize:11,color:"#a0aec0"}},"Annulla"))),
+          React.createElement("button",{onClick:function(e){e.stopPropagation();deleteNote(cid,sid,note.id);},style:{background:"none",border:"none",cursor:"pointer",color:"#fc8181",fontSize:14,padding:"2px 4px"}},"x"))),
+      /* corpo nota aperto */
+      isOpen&&React.createElement("div",{style:{padding:14},onClick:function(e){e.stopPropagation();}},
+        React.createElement("input",{value:editingNote.title,onChange:function(e){setEditingNote(function(en){return Object.assign({},en,{title:e.target.value});});},placeholder:"Titolo nota...",style:{width:"100%",fontSize:15,fontWeight:700,border:"none",borderBottom:"2px solid #e2e8f0",padding:"4px 0",marginBottom:10,outline:"none",color:"#2d3748"}}),
+        React.createElement(NoteEditor,{value:editingNote.body,onChange:function(v){setEditingNote(function(en){return Object.assign({},en,{body:v});});}}),
+        React.createElement("div",{style:{display:"flex",justifyContent:"flex-end",gap:8,marginTop:10}},
+          React.createElement("button",{onClick:function(){setEditingNote(null);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontWeight:600}},"Annulla"),
+          React.createElement("button",{onClick:function(){saveNote(cid,sid,note.id,editingNote.title,editingNote.body);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontWeight:700}},"Salva"))));
+  }
+
+  return React.createElement("div",{style:{maxWidth:800,margin:"0 auto",padding:"20px 16px"}},
+    /* header */
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
+      React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Note"),
+      React.createElement("button",{onClick:addCat,style:{background:"#667eea",color:"#fff",border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontWeight:700,fontSize:14}},"\uFF0B Categoria")),
+    /* lista categorie */
+    cats.length===0&&React.createElement("div",{style:{textAlign:"center",color:"#a0aec0",padding:60,fontSize:14}},"Nessuna categoria ancora. Clicca '+ Categoria' per iniziare."),
+    cats.map(function(cat,ci){
+      var isOpen=openCat===cat.id;
+      return React.createElement("div",{key:cat.id,style:{marginBottom:12,borderRadius:12,overflow:"hidden",border:"1px solid #e2e8f0",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}},
+        /* header categoria */
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"12px 16px",background:"#2d3748",cursor:"pointer"},onClick:function(){setOpenCat(isOpen?null:cat.id);}},
+          React.createElement("span",{style:{fontSize:16,color:"#fff",flex:1,fontWeight:700}},
+            renamingCat===cat.id
+              ?React.createElement("input",{autoFocus:true,value:renameVal,onChange:function(e){setRenameVal(e.target.value);},onBlur:function(){saveRenameCat(cat.id);},onKeyDown:function(e){if(e.key==="Enter")saveRenameCat(cat.id);if(e.key==="Escape")setRenamingCat(null);},onClick:function(e){e.stopPropagation();},style:{background:"transparent",border:"none",borderBottom:"2px solid #fff",color:"#fff",fontSize:16,fontWeight:700,outline:"none",width:"100%"}})
+              :cat.name),
+          React.createElement("div",{style:{display:"flex",gap:4},onClick:function(e){e.stopPropagation();}},
+            React.createElement("button",{onClick:function(){moveCat(cat.id,-1);},style:{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",fontSize:14,padding:"2px 4px"}},"\u2191"),
+            React.createElement("button",{onClick:function(){moveCat(cat.id,1);},style:{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",fontSize:14,padding:"2px 4px"}},"\u2193"),
+            React.createElement("button",{onClick:function(){startRenameCat(cat.id,cat.name);},style:{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:6,cursor:"pointer",color:"#fff",fontSize:12,padding:"2px 8px"}},"Rinomina"),
+            React.createElement("button",{onClick:function(){deleteCat(cat.id);},style:{background:"rgba(255,0,0,0.2)",border:"none",borderRadius:6,cursor:"pointer",color:"#fff",fontSize:12,padding:"2px 8px"}},"Elimina"),
+            React.createElement("span",{style:{color:"rgba(255,255,255,0.5)",fontSize:18}},isOpen?"\u25B2":"\u25BC"))),
+        /* contenuto categoria */
+        isOpen&&React.createElement("div",{style:{padding:"12px 16px",background:"#f8f9fa"}},
+          /* note dirette nella categoria */
+          (cat.notes||[]).map(function(note){return renderNote(note,cat.id,null);}),
+          React.createElement("button",{onClick:function(){addNote(cat.id,null);},style:{background:"none",border:"1px dashed #cbd5e0",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:13,color:"#718096",marginBottom:12,width:"100%"}},"\uFF0B Nota in "+cat.name),
+          /* sottocategorie */
+          (cat.subs||[]).map(function(sub,si){
+            var isSubOpen=openSub===sub.id;
+            return React.createElement("div",{key:sub.id,style:{marginBottom:8,borderRadius:10,overflow:"hidden",border:"1px solid #e2e8f0"}},
+              React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#4a5568",cursor:"pointer"},onClick:function(){setOpenSub(isSubOpen?null:sub.id);}},
+                React.createElement("span",{style:{flex:1,fontSize:14,fontWeight:600,color:"#fff"}},sub.name),
+                React.createElement("div",{style:{display:"flex",gap:4},onClick:function(e){e.stopPropagation();}},
+                  React.createElement("button",{onClick:function(){moveSub(cat.id,sub.id,-1);},style:{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",fontSize:13}},"↑"),
+                  React.createElement("button",{onClick:function(){moveSub(cat.id,sub.id,1);},style:{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.6)",fontSize:13}},"↓"),
+                  React.createElement("button",{onClick:function(){renameSub(cat.id,sub.id);},style:{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:5,cursor:"pointer",color:"#fff",fontSize:11,padding:"1px 6px"}},"Rinomina"),
+                  React.createElement("button",{onClick:function(){deleteSub(cat.id,sub.id);},style:{background:"rgba(255,0,0,0.2)",border:"none",borderRadius:5,cursor:"pointer",color:"#fff",fontSize:11,padding:"1px 6px"}},"Elimina"),
+                  React.createElement("span",{style:{color:"rgba(255,255,255,0.5)",fontSize:14}},isSubOpen?"\u25B2":"\u25BC"))),
+              isSubOpen&&React.createElement("div",{style:{padding:"10px 12px",background:"#fff"}},
+                (sub.notes||[]).map(function(note){return renderNote(note,cat.id,sub.id);}),
+                React.createElement("button",{onClick:function(){addNote(cat.id,sub.id);},style:{background:"none",border:"1px dashed #cbd5e0",borderRadius:8,padding:"5px 10px",cursor:"pointer",fontSize:12,color:"#718096",width:"100%"}},"\uFF0B Nota in "+sub.name)));
+          }),
+          React.createElement("button",{onClick:function(){addSub(cat.id);},style:{background:"none",border:"1px dashed #a0aec0",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:13,color:"#4a5568",marginTop:4,width:"100%"}},"\uFF0B Sottocategoria")));
+    }));
+}
+
 function TimerSection(){
   var _s=React.useState("classic");var mode=_s[0];var setMode=_s[1];
   var _s2=React.useState(25);var focusMin=_s2[0];var setFocusMin=_s2[1];
@@ -1382,7 +1650,7 @@ function SettingsPanel(props){
   var _s=useState("main");var sub=_s[0];var setSub=_s[1];
   var _s2=useState(false);var confirmReset=_s2[0];var setConfirmReset=_s2[1];
   var _s3=useState(null);var pendingTheme=_s3[0];var setPendingTheme=_s3[1];
-  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","am","dashboard"];
+  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","am","note","dashboard"];
   function handleGlobalTheme(theme){var has=Object.values(settings.tabs).some(function(t){return t.headerTheme||t.bodyTheme;});if(has){setPendingTheme(theme);setConfirmReset(true);}else setSettings(function(s){return Object.assign({},s,{theme:theme});});}
   function confirmResetFn(){var tabs={};Object.keys(settings.tabs).forEach(function(k){tabs[k]=Object.assign({},settings.tabs[k],{headerTheme:null,bodyTheme:null});});setSettings(function(s){return Object.assign({},s,{theme:pendingTheme,tabs:tabs});});setConfirmReset(false);setPendingTheme(null);}
   function keepFn(){setSettings(function(s){return Object.assign({},s,{theme:pendingTheme});});setConfirmReset(false);setPendingTheme(null);}
@@ -1420,13 +1688,14 @@ function App(){
   var _s17=useState([]);var undoHistory=_s17[0];var setUndoHistory=_s17[1];
   var _s_ai=useState(INIT_AI);var aiData=_s_ai[0];var setAiData=_s_ai[1];
   var _s_am=useState(INIT_AM);var amData=_s_am[0];var setAmData=_s_am[1];
+  var _s_notes=useState(INIT_NOTES);var notesData=_s_notes[0];var setNotesData=_s_notes[1];
   var _s18=useState(false);var saveReady=_s18[0];var setSaveReady=_s18[1];
   var _s18=useState(false);var loadError=_s18[0];var setLoadError=_s18[1];
   var _s15=useState(null);var swipeStartX=_s15[0];var setSwipeStartX=_s15[1];
   var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
 
   useEffect(function(){
-    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI),fbLoad("alm_am",INIT_AM)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
+    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI),fbLoad("alm_am",INIT_AM),fbLoad("alm_notes",INIT_NOTES)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
           var g2=JSON.parse(JSON.stringify(res[2]));
           ["personale","lavorativa","artistica"].forEach(function(area){
             if(g2[area]){["breve","medio","lungo"].forEach(function(term){
@@ -1439,7 +1708,8 @@ function App(){
         }setTodos(res[3]);if(hasData(res[4]))setPhrases(res[4]);setEvents(res[5]);if(hasData(res[6]))setSettings(res[6]);setDismissed(res[7]);if(res[8])setTabOrder(res[8]);var aiLoaded=res[9];
           if(aiLoaded&&aiLoaded.att1&&aiLoaded.att1.length>0){setAiData(aiLoaded);}
           else{setAiData(INIT_AI);}
-          if(res[10]&&(res[10].al||res[10].ai||res[10].pas))setAmData(res[10]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
+          if(res[10]&&(res[10].al||res[10].ai||res[10].pas))setAmData(res[10]);
+          if(res[11]&&res[11].cats)setNotesData(res[11]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
         if(window._fbLoadError){setLoadError(true);setLoaded(true);}
         else{setLoaded(true);setTimeout(function(){if(!window._fbLoadError){window._alm_ready=true;setSaveReady(true);}},2000);}});}
     if(window._fbReady){doLoad();}else{window.addEventListener("fbReady",doLoad,{once:true});}
@@ -1460,6 +1730,7 @@ function App(){
   useEffect(function(){if(canSave()&&tabOrder)fbSave("alm_taborder",tabOrder);},[tabOrder,saveReady]);
   useEffect(function(){if(canSave()&&aiData)fbSave("alm_ai",aiData);},[aiData,saveReady]);
   useEffect(function(){if(canSave()&&amData)fbSave("alm_am",amData);},[amData,saveReady]);
+  useEffect(function(){if(canSave()&&notesData)fbSave("alm_notes",notesData);},[notesData,saveReady]);
 
   var globalTheme=settings?THEMES[settings.theme]||THEMES.light:THEMES.light;
   var tabCfg=area&&settings&&settings.tabs[area]?settings.tabs[area]:{};
@@ -1470,7 +1741,7 @@ function App(){
   var visibleBanners=bannerIgnored?[]:banners;
 
   function pushUndo(label){
-    var snap={label:label||"azione",todos:JSON.parse(JSON.stringify(todos||[])),goals:JSON.parse(JSON.stringify(goals||{})),data:JSON.parse(JSON.stringify(data||{})),objectives:JSON.parse(JSON.stringify(objectives||[])),events:JSON.parse(JSON.stringify(events||[])),phrases:(phrases||[]).slice(),aiData:JSON.parse(JSON.stringify(aiData||{})),amData:JSON.parse(JSON.stringify(amData||{}))};
+    var snap={label:label||"azione",todos:JSON.parse(JSON.stringify(todos||[])),goals:JSON.parse(JSON.stringify(goals||{})),data:JSON.parse(JSON.stringify(data||{})),objectives:JSON.parse(JSON.stringify(objectives||[])),events:JSON.parse(JSON.stringify(events||[])),phrases:(phrases||[]).slice(),aiData:JSON.parse(JSON.stringify(aiData||{})),amData:JSON.parse(JSON.stringify(amData||{})),notesData:JSON.parse(JSON.stringify(notesData||{}))};
     setUndoHistory(function(h){return h.slice(-19).concat([snap]);});
   }
   function handleUndo(){
@@ -1485,6 +1756,7 @@ function App(){
       if(snap.phrases!==undefined)setPhrases(snap.phrases);
       if(snap.aiData!==undefined)setAiData(snap.aiData);
       if(snap.amData!==undefined)setAmData(snap.amData);
+      if(snap.notesData!==undefined)setNotesData(snap.notesData);
       return h.slice(0,-1);
     });
   }
@@ -1552,6 +1824,7 @@ alert("Importazione completata! "+imported+" sezioni principali importate.");}ca
     area==="timer"?React.createElement(TimerSection):null,
     area==="ai"?React.createElement(AISection,{aiData:aiData,setAiData:setAiData,pushUndo:pushUndo}):null,
     area==="am"?React.createElement(AMSection,{amData:amData,setAmData:setAmData,pushUndo:pushUndo}):null,
+    area==="note"?React.createElement(NotesSection,{notesData:notesData,setNotesData:setNotesData,pushUndo:pushUndo}):null,
     area==="dashboard"?React.createElement(Dashboard,{data:data,onNavigate:function(a){setArea(a);}}):null,
     showSettings?React.createElement(SettingsPanel,settingsProps):null,
     hasBanners?React.createElement(BannerOverlay,bannerProps):null
