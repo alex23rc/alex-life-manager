@@ -2241,17 +2241,36 @@ function App(){
     });
   }
   function handleExport(){
-    var all={data:data,objectives:objectives,goals:goals,todos:todos,phrases:phrases,events:events,settings:settings,dismissed:dismissed};
+    var all={data:data,objectives:objectives,goals:goals,todos:todos,phrases:phrases,events:events,settings:settings,dismissed:dismissed,taborder:tabOrder,timer_bg:bgColor,ai:aiData,am:amData,notes:notesData,disc:discData};
     var blob=new Blob([JSON.stringify(all,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="alex-backup.json";a.click();
   }
   function handleImport(e){var file=e.target.files[0];if(!file)return;
   if(!canSave()){alert("Firebase non ancora pronto. Attendi qualche secondo e riprova.");return;}
-var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);var get=function(k1,k2){return d[k1]||d[k2]||null;};var imp_data=get("data","alm_data");var imp_obj=get("objectives","alm_objectives");var imp_goals=get("goals","alm_goals");var imp_todos=get("todos","alm_todos");var imp_phrases=get("phrases","alm_phrases");var imp_events=get("events","alm_events");var imp_settings=get("settings","alm_settings");var imp_dismissed=get("dismissed","alm_dismissed");function hasVal(v){return v!==null&&v!==undefined&&(Array.isArray(v)?v.length>0:typeof v==="object"?Object.keys(v).length>0:true);}
+var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);var get=function(k1,k2){return d[k1]||d[k2]||null;};var imp_data=get("data","alm_data");var imp_obj=get("objectives","alm_objectives");var imp_goals=get("goals","alm_goals");var imp_todos=get("todos","alm_todos");var imp_phrases=get("phrases","alm_phrases");var imp_events=get("events","alm_events");var imp_settings=get("settings","alm_settings");var imp_dismissed=get("dismissed","alm_dismissed");
+var imp_taborder=get("taborder","alm_taborder");
+var imp_timer_bg=get("timer_bg","alm_timer_bg");
+var imp_ai=get("ai","alm_ai");
+var imp_am=get("am","alm_am");
+var imp_notes=get("notes","alm_notes");
+var imp_disc=get("disc","alm_disc");
+function hasVal(v){return v!==null&&v!==undefined&&(Array.isArray(v)?v.length>0:typeof v==="object"?Object.keys(v).length>0:true);}
 var imported=0;
 if(hasVal(imp_data)){setData(imp_data);imported++;}
 if(hasVal(imp_obj)){setObjectives(imp_obj);imported++;}
-if(hasVal(imp_goals)){setGoals(imp_goals);imported++;}if(hasVal(imp_todos))setTodos(imp_todos);if(hasVal(imp_phrases))setPhrases(imp_phrases);if(hasVal(imp_events))setEvents(imp_events);if(hasVal(imp_settings))setSettings(imp_settings);if(hasVal(imp_dismissed))setDismissed(imp_dismissed);if(imported===0&&!imp_todos&&!imp_events&&!imp_dismissed){alert("Nessun dato riconosciuto. Importazione annullata.");return;}
-alert("Importazione completata! "+imported+" sezioni principali importate.");}catch(err){alert("File non valido: "+err.message);}};r.readAsText(file);}
+if(hasVal(imp_goals)){setGoals(imp_goals);imported++;}
+if(hasVal(imp_todos)){setTodos(imp_todos);imported++;}
+if(hasVal(imp_phrases)){setPhrases(imp_phrases);imported++;}
+if(hasVal(imp_events)){setEvents(imp_events);imported++;}
+if(hasVal(imp_settings)){setSettings(imp_settings);imported++;}
+if(hasVal(imp_dismissed))setDismissed(imp_dismissed);
+if(imp_taborder)setTabOrder(imp_taborder);
+if(imp_timer_bg)setBgColor(imp_timer_bg);
+if(hasVal(imp_ai)){setAiData(imp_ai);imported++;}
+if(hasVal(imp_am)){setAmData(imp_am);imported++;}
+if(hasVal(imp_notes)){setNotesData(imp_notes);imported++;}
+if(hasVal(imp_disc)){setDiscData(imp_disc);imported++;}
+if(imported===0){alert("Nessun dato riconosciuto. Importazione annullata.");return;}
+alert("Importazione completata! "+imported+" sezioni importate.");}catch(err){alert("File non valido: "+err.message);}};r.readAsText(file);}
   function handleCloseBanner(key){setDismissed(function(d){var n=Object.assign({},d);n[key]=true;return n;});}
   function handleAddTodo(ev){
     pushUndo("sposta evento a todo");
