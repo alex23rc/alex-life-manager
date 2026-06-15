@@ -1117,7 +1117,6 @@ function DisciplinaSection(props){
 
   var _sv=useState("oggi");var view=_sv[0];var setView=_sv[1];
   var _sm=useState(null);var modal=_sm[0];var setModal=_sm[1];
-  var _ssp=useState(false);var showSnapshotPrompt=_ssp[0];var setShowSnapshotPrompt=_ssp[1];
   var _src=useState(null);var resetModal=_src[0];var setResetModal=_src[1];
   var _srcc=useState(false);var resetCatModal=_srcc[0];var setResetCatModal=_srcc[1];
 
@@ -1130,19 +1129,6 @@ function DisciplinaSection(props){
   function getMondayOfWeek(wk){return new Date(wk+"T00:00:00");}
   function getWeekDays(wk){var mon=getMondayOfWeek(wk);return Array.from({length:7},function(_,i){var d=new Date(mon);d.setDate(d.getDate()+i);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");});}
   function currentWeek(){return weekKey();}
-
-  /* ── check popup lunedì ── */
-  React.useEffect(function(){
-    var now=new Date();
-    var isMonday=now.getDay()===1;
-    var isAfterNoon=now.getHours()>=12;
-    var prevWeek=weekKey(new Date(now.getTime()-7*24*60*60*1000));
-    var alreadySaved=snapshots.some(function(s){return s.week===prevWeek;});
-    var pending=discData.pendingSnapshot;
-    if(isMonday&&isAfterNoon&&!alreadySaved&&habits.length>0&&pending!==false){
-      setShowSnapshotPrompt(true);
-    }
-  },[]);
 
   function upd(fn){setDiscData(function(d){var n=JSON.parse(JSON.stringify(d));fn(n);return n;});}
   function newId(){return Math.random().toString(36).slice(2,9);}
@@ -1157,16 +1143,11 @@ function DisciplinaSection(props){
       var score=h.target>0?Math.round((count/h.target)*100):0;
       snap.scores[h.id]=Math.min(score,100);
     });
+    pushUndo("salva snapshot settimana");
     upd(function(d){
-      d.snapshots=(d.snapshots||[]).concat([snap]);
-      d.pendingSnapshot=false;
+      d.snapshots=(d.snapshots||[]).filter(function(s){return s.week!==prevWeek;}).concat([snap]);
     });
-    setShowSnapshotPrompt(false);
-    alert("Snapshot settimana "+prevWeek+" salvato!");
-  }
-  function dismissSnapshot(){
-    upd(function(d){d.pendingSnapshot=false;});
-    setShowSnapshotPrompt(false);
+    alert("Snapshot settimana "+prevWeek+" salvato! Classifiche e grafici aggiornati.");
   }
 
   /* ── categorie ── */
@@ -1234,23 +1215,14 @@ function DisciplinaSection(props){
     return snap&&snap.scores?snap.scores[hid]:null;
   }
   function getAvgScore(hid,nWeeks){
-    var now=new Date();
-    var weeks=[];
-    for(var i=0;i<nWeeks;i++){
-      var dt=new Date(now.getTime()-i*7*24*60*60*1000);
-      weeks.push(weekKey(dt));
-    }
-    var scores=weeks.map(function(wk){
-      if(wk===currentWeek())return getWeekScore(hid,wk);
-      return getSnapshotScore(hid,wk);
-    }).filter(function(s){return s!==null;});
+    var sorted=snapshots.slice().sort(function(a,b){return a.week<b.week?1:-1;});
+    var lastN=sorted.slice(0,nWeeks);
+    var scores=lastN.map(function(s){return s.scores&&s.scores[hid]!=null?s.scores[hid]:null;}).filter(function(s){return s!==null;});
     if(!scores.length)return null;
     return Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length);
   }
   function getHistoricAvg(hid){
     var wkScores=snapshots.map(function(s){return s.scores&&s.scores[hid]!=null?s.scores[hid]:null;}).filter(function(s){return s!==null;});
-    var curr=getWeekScore(hid,currentWeek());
-    wkScores.push(curr);
     if(!wkScores.length)return null;
     return Math.round(wkScores.reduce(function(a,b){return a+b;},0)/wkScores.length);
   }
@@ -1419,7 +1391,7 @@ function DisciplinaSection(props){
         cats.slice().sort(function(catA,catB){
           var habsA=activeHabits.filter(function(h){return h.catId===catA.id;});
           var habsB=activeHabits.filter(function(h){return h.catId===catB.id;});
-          function catAvg(habs){if(!habs.length)return -1;var sc=snapshots.map(function(s){var v=habs.map(function(h){return s.scores&&s.scores[h.id]!=null?s.scores[h.id]:null;}).filter(function(v){return v!==null;});return v.length?Math.round(v.reduce(function(a,b){return a+b;},0)/v.length):null;}).filter(function(s){return s!==null;});var cur=Math.round(habs.map(function(h){return getWeekScore(h.id,cw);}).reduce(function(a,b){return a+b;},0)/habs.length);sc.push(cur);return sc.length?Math.round(sc.reduce(function(a,b){return a+b;},0)/sc.length):-1;}
+          function catAvg(habs){if(!habs.length)return -1;var sc=snapshots.map(function(s){var v=habs.map(function(h){return s.scores&&s.scores[h.id]!=null?s.scores[h.id]:null;}).filter(function(v){return v!==null;});return v.length?Math.round(v.reduce(function(a,b){return a+b;},0)/v.length):null;}).filter(function(s){return s!==null;});return sc.length?Math.round(sc.reduce(function(a,b){return a+b;},0)/sc.length):-1;}
           return catAvg(habsB)-catAvg(habsA);
         }).map(function(cat,idx){
           var catHabs=activeHabits.filter(function(h){return h.catId===cat.id;});
@@ -1428,8 +1400,6 @@ function DisciplinaSection(props){
             var scores=catHabs.map(function(h){return s.scores&&s.scores[h.id]!=null?s.scores[h.id]:null;}).filter(function(s){return s!==null;});
             return scores.length?Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length):null;
           }).filter(function(s){return s!==null;});
-          var curr=catHabs.map(function(h){return getWeekScore(h.id,cw);});
-          allScores.push(Math.round(curr.reduce(function(a,b){return a+b;},0)/curr.length));
           var avg=allScores.length?Math.round(allScores.reduce(function(a,b){return a+b;},0)/allScores.length):null;
           var prevAvg=allScores.length>1?Math.round(allScores.slice(0,-1).reduce(function(a,b){return a+b;},0)/allScores.slice(0,-1).length):null;
           return React.createElement("div",{key:cat.id,style:{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:idx<cats.length-1?"1px solid #f0f0f0":"none"}},
@@ -1516,13 +1486,6 @@ function DisciplinaSection(props){
     }));
   }
   return React.createElement("div",{style:{maxWidth:820,margin:"0 auto",padding:"20px 16px"}},
-    /* popup snapshot */
-    showSnapshotPrompt&&React.createElement("div",{style:{position:"fixed",bottom:24,right:24,background:"#2d3748",color:"#fff",borderRadius:14,padding:20,maxWidth:320,boxShadow:"0 8px 30px rgba(0,0,0,0.3)",zIndex:4000}},
-      React.createElement("div",{style:{fontSize:15,fontWeight:700,marginBottom:6}},"📊 Salva settimana passata"),
-      React.createElement("div",{style:{fontSize:13,color:"rgba(255,255,255,0.8)",marginBottom:14}},"Vuoi salvare i risultati della settimana appena terminata?"),
-      React.createElement("div",{style:{display:"flex",gap:8}},
-        React.createElement("button",{onClick:doSnapshot,style:{flex:1,background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"8px",cursor:"pointer",fontWeight:700}},"Salva"),
-        React.createElement("button",{onClick:dismissSnapshot,style:{flex:1,background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:8,padding:"8px",cursor:"pointer"}},"Rimanda"))),
     /* modal reset */
     resetCatModal&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:5000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:28,maxWidth:360,width:"100%"}},React.createElement("h3",{style:{margin:"0 0 16px",color:"#2d3748"}},"Reset storico categorie"),["all","1y","3m","1m"].map(function(type){var label=type==="all"?"Resetta tutto":type==="1y"?"Dati più vecchi di 1 anno":type==="3m"?"Dati più vecchi di 3 mesi":"Dati più vecchi di 1 mese";return React.createElement("button",{key:type,onClick:function(){doResetCat(type);},style:{display:"block",width:"100%",background:type==="all"?"#fff5f5":"#f7fafc",border:"1px solid "+(type==="all"?"#fed7d7":"#e2e8f0"),borderRadius:8,padding:"10px 14px",cursor:"pointer",fontSize:13,fontWeight:600,color:type==="all"?"#e53e3e":"#2d3748",marginBottom:8,textAlign:"left"}},label);}),React.createElement("button",{onClick:function(){setResetCatModal(false);},style:{display:"block",width:"100%",background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:600}},"Annulla"))),
     resetModal&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:5000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
@@ -1585,6 +1548,7 @@ function DisciplinaSection(props){
         cats.length>0&&React.createElement("select",{onChange:function(e){if(e.target.value)openNewHabit(e.target.value);e.target.value="";},defaultValue:"",style:{padding:"6px 10px",borderRadius:8,border:"1px solid #e2e8f0",fontSize:13,cursor:"pointer"}},
           React.createElement("option",{value:"",disabled:true},"+Abitudine"),
           cats.map(function(c){return React.createElement("option",{key:c.id,value:c.id},c.name);})),
+        habits.length>0&&React.createElement("button",{onClick:doSnapshot,title:"Salva manualmente lo snapshot della settimana scorsa",style:{padding:"6px 14px",borderRadius:8,border:"1px solid #e2e8f0",cursor:"pointer",fontWeight:600,fontSize:13,background:"#f0fff4",color:"#38a169"}},"💾 Nuova settimana"),
         /* gestione categorie */
         cats.length>0&&React.createElement("div",{style:{display:"flex",gap:4}},
           cats.map(function(c){return React.createElement("div",{key:c.id,style:{display:"flex",gap:2}},
