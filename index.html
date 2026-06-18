@@ -56,7 +56,7 @@ const MONTHS_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio
 const ALL_TABS=[
   {k:"todo",l:"To Do"},{k:"obiettivi",l:"Top 10"},{k:"goals",l:"Obiettivi"},
   {k:"personale",l:"Personale"},{k:"lavorativa",l:"Lavoro"},{k:"artistica",l:"Arte"},
-  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"am",l:"A.M."},{k:"note",l:"Note"},{k:"disc",l:"Disciplina"},{k:"dashboard",l:"Dashboard"},
+  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"am",l:"A.M."},{k:"note",l:"Note"},{k:"disc",l:"Disciplina"},{k:"linee",l:"Linee Guida"},{k:"afferm",l:"Affermazioni"},{k:"dashboard",l:"Dashboard"},
 ];
 
 const THEMES={
@@ -92,7 +92,7 @@ const INIT_SETTINGS={
     artistica:{visible:true,home:false,label:"Arte",headerTheme:null,bodyTheme:null},
     calendar:{visible:true,home:false,label:"Calendario",headerTheme:null,bodyTheme:null},
     frasi:{visible:true,home:false,label:"Frasi",headerTheme:null,bodyTheme:null},
-    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},am:{visible:true,home:false,label:"A.M.",headerTheme:null,bodyTheme:null},note:{visible:true,home:false,label:"Note",headerTheme:null,bodyTheme:null},disc:{visible:true,home:false,label:"Disciplina",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
+    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},am:{visible:true,home:false,label:"A.M.",headerTheme:null,bodyTheme:null},note:{visible:true,home:false,label:"Note",headerTheme:null,bodyTheme:null},disc:{visible:true,home:false,label:"Disciplina",headerTheme:null,bodyTheme:null},linee:{visible:true,home:false,label:"Linee Guida",headerTheme:null,bodyTheme:null},afferm:{visible:true,home:false,label:"Affermazioni",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
   },
   theme:"light",userName:"Alex",weekStart:"monday",
 };
@@ -1957,6 +1957,72 @@ function ObjCard(props){var obj=props.obj;var c=colMap[obj.color]||"#718096";ret
 
 function NewCardForm(props){var _s=useState("");var name=_s[0];var setName=_s[1];var _s2=useState("blue");var color=_s2[0];var setColor=_s2[1];return React.createElement("div",{style:{border:"2px dashed #cbd5e0",borderRadius:12,padding:16,background:"#f7fafc"}},React.createElement("div",{style:{fontWeight:700,fontSize:14,color:"#4a5568",marginBottom:12}},"Nuova scheda"),React.createElement("input",{autoFocus:true,value:name,onChange:function(e){setName(e.target.value);},onKeyDown:function(e){if(e.key==="Enter"&&name.trim())props.onAdd(name.trim(),color);},placeholder:"Nome scheda...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 10px",fontSize:14,marginBottom:10,boxSizing:"border-box"}}),React.createElement("div",{style:{display:"flex",gap:8,alignItems:"center",marginBottom:12}},React.createElement("span",{style:{fontSize:13,color:"#718096"}},"Colore:"),Object.entries(colMap).map(function(e){return React.createElement("div",{key:e[0],onClick:function(){setColor(e[0]);},style:{width:22,height:22,borderRadius:"50%",background:e[1],cursor:"pointer",border:color===e[0]?"3px solid #2d3748":"2px solid #e2e8f0"}});})),React.createElement("div",{style:{display:"flex",gap:8}},React.createElement("button",{onClick:function(){if(name.trim())props.onAdd(name.trim(),color);},style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"7px 18px",cursor:"pointer",fontWeight:700}},"Crea"),React.createElement("button",{onClick:props.onCancel,style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer"}},"Annulla")));}
 
+/* ============================================================
+   COMPONENTE GENERICO: ListSection (usato da Linee e Affermazioni)
+   ============================================================ */
+function ListSection(props){
+  var title=props.title;
+  var items=props.items;var setItems=props.setItems;
+  var _s=useState(null);var editing=_s[0];var setEditing=_s[1];
+  var _s2=useState("");var val=_s2[0];var setVal=_s2[1];
+  var _s3=useState(null);var noteIdx=_s3[0];var setNoteIdx=_s3[1];
+  var _s4=useState("");var newText=_s4[0];var setNewText=_s4[1];
+
+  function saveText(i){
+    setItems(function(o){return o.map(function(x,j){return j===i?Object.assign({},x,{text:val}):x;});});
+    setEditing(null);
+  }
+  function saveNote(i,note){
+    setItems(function(o){return o.map(function(x,j){return j===i?Object.assign({},x,{notes:note}):x;});});
+  }
+  function addItem(){
+    if(!newText.trim())return;
+    var newId=Math.random().toString(36).slice(2,9);
+    setItems(function(o){return o.concat([{id:newId,text:newText.trim(),notes:""}]);});
+    setNewText("");
+  }
+  function delItem(i){
+    if(!window.confirm("Eliminare questa voce?"))return;
+    setItems(function(o){return o.filter(function(_,j){return j!==i;});});
+    if(editing===i)setEditing(null);
+  }
+
+  var noteItem=noteIdx!==null?items[noteIdx]:null;
+
+  return React.createElement("div",{style:{maxWidth:700,margin:"0 auto",padding:"24px 20px"}},
+    /* modal nota */
+    noteItem!==undefined&&noteIdx!==null&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,maxWidth:480,width:"100%",boxShadow:"0 8px 40px rgba(0,0,0,0.2)"}},
+        React.createElement("div",{style:{fontSize:14,fontWeight:700,color:"#2d3748",marginBottom:10}},noteItem?noteItem.text:""),
+        React.createElement("textarea",{value:noteItem?noteItem.notes||"":"",onChange:function(e){saveNote(noteIdx,e.target.value);},rows:5,placeholder:"Scrivi una nota...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 12px",fontSize:14,resize:"vertical"}}),
+        React.createElement("div",{style:{display:"flex",justifyContent:"flex-end",marginTop:12}},
+          React.createElement("button",{onClick:function(){setNoteIdx(null);},style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:8,padding:"8px 20px",cursor:"pointer",fontWeight:700}},"Chiudi")))),
+    React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",marginBottom:6}},title),
+    React.createElement("p",{style:{color:"#718096",marginBottom:20,fontSize:14}},"Trascina per riordinare. Clicca sul testo per modificare."),
+    /* campo aggiungi */
+    React.createElement("div",{style:{display:"flex",gap:8,marginBottom:24}},
+      React.createElement("input",{value:newText,onChange:function(e){setNewText(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")addItem();},placeholder:"Aggiungi voce...",style:{flex:1,border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 14px",fontSize:15}}),
+      React.createElement("button",{onClick:addItem,style:{background:"#2d3748",color:"#fff",border:"none",borderRadius:10,padding:"10px 18px",cursor:"pointer",fontWeight:700,fontSize:18}},"\uFF0B")),
+    /* lista */
+    React.createElement(DragList,{
+      items:items.map(function(o,i){return Object.assign({},o,{id:"ls"+i});}),
+      onReorder:function(ni){setItems(ni.map(function(x){var r=Object.assign({},x);delete r.id;return r;}));},
+      renderItem:function(o,i){
+        return React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:12,background:"#fff",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",border:"1px solid #e2e8f0"}},
+          React.createElement("span",{style:{color:"#cbd5e0",cursor:"grab",fontSize:14,flexShrink:0}},"::"),
+          React.createElement("div",{style:{width:32,height:32,borderRadius:"50%",background:o.text?"linear-gradient(135deg,#667eea,#764ba2)":"#e2e8f0",color:o.text?"#fff":"#a0aec0",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:15,flexShrink:0}},i+1),
+          editing===i
+            ?React.createElement("div",{style:{flex:1,display:"flex",gap:8}},
+                React.createElement("input",{autoFocus:true,value:val,onChange:function(e){setVal(e.target.value);},onKeyDown:function(e){if(e.key==="Enter")saveText(i);if(e.key==="Escape")setEditing(null);},style:{flex:1,border:"2px solid #667eea",borderRadius:8,padding:"5px 8px",fontSize:14}}),
+                React.createElement("button",{onClick:function(){saveText(i);},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"5px 12px",cursor:"pointer",fontWeight:700}},"OK"),
+                React.createElement("button",{onClick:function(){setEditing(null);},style:{background:"#e2e8f0",border:"none",borderRadius:8,padding:"5px 10px",cursor:"pointer"}},"✕"))
+            :React.createElement("div",{onClick:function(){setEditing(i);setVal(o.text||"");},style:{flex:1,fontSize:15,color:o.text?"#2d3748":"#a0aec0",cursor:"text",minHeight:24}},o.text||"(vuoto)"),
+          React.createElement("button",{onClick:function(){setNoteIdx(i);},style:{background:o.notes?"#667eea":"#f0f0f0",color:o.notes?"#fff":"#718096",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}},"nota"),
+          React.createElement("button",{onClick:function(){delItem(i);},style:{background:"none",border:"none",color:"#fc8181",cursor:"pointer",fontSize:16,padding:"0 4px",flexShrink:0}},"x"));
+      }
+    }));
+}
+
 function Top10(props){
   var objectives=props.objectives;var setObjectives=props.setObjectives;
   var _s=useState(null);var editing=_s[0];var setEditing=_s[1];
@@ -2119,7 +2185,7 @@ function SettingsPanel(props){
   var _s=useState("main");var sub=_s[0];var setSub=_s[1];
   var _s2=useState(false);var confirmReset=_s2[0];var setConfirmReset=_s2[1];
   var _s3=useState(null);var pendingTheme=_s3[0];var setPendingTheme=_s3[1];
-  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","am","note","disc","dashboard"];
+  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","am","note","disc","linee","afferm","dashboard"];
   function handleGlobalTheme(theme){var has=Object.values(settings.tabs).some(function(t){return t.headerTheme||t.bodyTheme;});if(has){setPendingTheme(theme);setConfirmReset(true);}else setSettings(function(s){return Object.assign({},s,{theme:theme});});}
   function confirmResetFn(){var tabs={};Object.keys(settings.tabs).forEach(function(k){tabs[k]=Object.assign({},settings.tabs[k],{headerTheme:null,bodyTheme:null});});setSettings(function(s){return Object.assign({},s,{theme:pendingTheme,tabs:tabs});});setConfirmReset(false);setPendingTheme(null);}
   function keepFn(){setSettings(function(s){return Object.assign({},s,{theme:pendingTheme});});setConfirmReset(false);setPendingTheme(null);}
@@ -2159,13 +2225,15 @@ function App(){
   var _s_am=useState(INIT_AM);var amData=_s_am[0];var setAmData=_s_am[1];
   var _s_notes=useState(INIT_NOTES);var notesData=_s_notes[0];var setNotesData=_s_notes[1];
   var _s_disc=useState(INIT_DISC);var discData=_s_disc[0];var setDiscData=_s_disc[1];
+  var _s_linee=useState([]);var lineeData=_s_linee[0];var setLineeData=_s_linee[1];
+  var _s_afferm=useState([]);var affermData=_s_afferm[0];var setAffermData=_s_afferm[1];
   var _s18=useState(false);var saveReady=_s18[0];var setSaveReady=_s18[1];
   var _s18=useState(false);var loadError=_s18[0];var setLoadError=_s18[1];
   var _s15=useState(null);var swipeStartX=_s15[0];var setSwipeStartX=_s15[1];
   var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
 
   useEffect(function(){
-    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI),fbLoad("alm_am",INIT_AM),fbLoad("alm_notes",INIT_NOTES),fbLoad("alm_disc",INIT_DISC)]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
+    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI),fbLoad("alm_am",INIT_AM),fbLoad("alm_notes",INIT_NOTES),fbLoad("alm_disc",INIT_DISC),fbLoad("alm_linee",[]),fbLoad("alm_afferm",[])]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
           var g2=JSON.parse(JSON.stringify(res[2]));
           ["personale","lavorativa","artistica"].forEach(function(area){
             if(g2[area]){["breve","medio","lungo"].forEach(function(term){
@@ -2180,7 +2248,9 @@ function App(){
           else{setAiData(INIT_AI);}
           if(res[10]&&(res[10].al||res[10].ai||res[10].pas))setAmData(res[10]);
           if(res[11]&&res[11].cats)setNotesData(res[11]);
-          if(res[12]&&res[12].habits)setDiscData(res[12]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
+          if(res[12]&&res[12].habits)setDiscData(res[12]);
+          if(res[13]&&Array.isArray(res[13]))setLineeData(res[13]);
+          if(res[14]&&Array.isArray(res[14]))setAffermData(res[14]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
         if(window._fbLoadError){setLoadError(true);setLoaded(true);}
         else{setLoaded(true);setTimeout(function(){if(!window._fbLoadError){window._alm_ready=true;setSaveReady(true);}},2000);}});}
     if(window._fbReady){doLoad();}else{window.addEventListener("fbReady",doLoad,{once:true});}
@@ -2203,6 +2273,8 @@ function App(){
   useEffect(function(){if(canSave()&&amData)fbSave("alm_am",amData);},[amData,saveReady]);
   useEffect(function(){if(canSave()&&notesData)fbSave("alm_notes",notesData);},[notesData,saveReady]);
   useEffect(function(){if(canSave()&&discData)fbSave("alm_disc",discData);},[discData,saveReady]);
+  useEffect(function(){if(canSave())fbSave("alm_linee",lineeData);},[lineeData,saveReady]);
+  useEffect(function(){if(canSave())fbSave("alm_afferm",affermData);},[affermData,saveReady]);
 
   var globalTheme=settings?THEMES[settings.theme]||THEMES.light:THEMES.light;
   var tabCfg=area&&settings&&settings.tabs[area]?settings.tabs[area]:{};
@@ -2213,7 +2285,7 @@ function App(){
   var visibleBanners=bannerIgnored?[]:banners;
 
   function pushUndo(label){
-    var snap={label:label||"azione",todos:JSON.parse(JSON.stringify(todos||[])),goals:JSON.parse(JSON.stringify(goals||{})),data:JSON.parse(JSON.stringify(data||{})),objectives:JSON.parse(JSON.stringify(objectives||[])),events:JSON.parse(JSON.stringify(events||[])),phrases:(phrases||[]).slice(),aiData:JSON.parse(JSON.stringify(aiData||{})),amData:JSON.parse(JSON.stringify(amData||{})),notesData:JSON.parse(JSON.stringify(notesData||{})),discData:JSON.parse(JSON.stringify(discData||{}))};
+    var snap={label:label||"azione",todos:JSON.parse(JSON.stringify(todos||[])),goals:JSON.parse(JSON.stringify(goals||{})),data:JSON.parse(JSON.stringify(data||{})),objectives:JSON.parse(JSON.stringify(objectives||[])),events:JSON.parse(JSON.stringify(events||[])),phrases:(phrases||[]).slice(),aiData:JSON.parse(JSON.stringify(aiData||{})),amData:JSON.parse(JSON.stringify(amData||{})),notesData:JSON.parse(JSON.stringify(notesData||{})),discData:JSON.parse(JSON.stringify(discData||{})),lineeData:JSON.parse(JSON.stringify(lineeData||[])),affermData:JSON.parse(JSON.stringify(affermData||[]))};
     setUndoHistory(function(h){return h.slice(-19).concat([snap]);});
   }
   function handleUndo(){
@@ -2230,11 +2302,13 @@ function App(){
       if(snap.amData!==undefined)setAmData(snap.amData);
       if(snap.notesData!==undefined)setNotesData(snap.notesData);
       if(snap.discData!==undefined)setDiscData(snap.discData);
+      if(snap.lineeData!==undefined)setLineeData(snap.lineeData);
+      if(snap.affermData!==undefined)setAffermData(snap.affermData);
       return h.slice(0,-1);
     });
   }
   function handleExport(){
-    var all={data:data,objectives:objectives,goals:goals,todos:todos,phrases:phrases,events:events,settings:settings,dismissed:dismissed,taborder:tabOrder,ai:aiData,am:amData,notes:notesData,disc:discData};
+    var all={data:data,objectives:objectives,goals:goals,todos:todos,phrases:phrases,events:events,settings:settings,dismissed:dismissed,taborder:tabOrder,ai:aiData,am:amData,notes:notesData,disc:discData,linee:lineeData,afferm:affermData};
     var blob=new Blob([JSON.stringify(all,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="alex-backup.json";a.click();
   }
   function handleImport(e){var file=e.target.files[0];if(!file)return;
@@ -2260,6 +2334,12 @@ if(hasVal(imp_ai)){setAiData(imp_ai);imported++;}
 if(hasVal(imp_am)){setAmData(imp_am);imported++;}
 if(hasVal(imp_notes)){setNotesData(imp_notes);imported++;}
 if(hasVal(imp_disc)){setDiscData(imp_disc);imported++;}
+var imp_afferm=get("afferm","alm_afferm");
+if(imp_afferm&&Array.isArray(imp_afferm)){setAffermData(imp_afferm);imported++;}
+var imp_linee=get("linee","alm_linee");
+var imp_afferm=get("afferm","alm_afferm");
+if(imp_linee&&Array.isArray(imp_linee)){setLineeData(imp_linee);imported++;}
+if(imp_afferm&&Array.isArray(imp_afferm)){setAffermData(imp_afferm);imported++;}
 if(imported===0){alert("Nessun dato riconosciuto. Importazione annullata.");return;}
 alert("Importazione completata! "+imported+" sezioni importate.");}catch(err){alert("File non valido: "+err.message);}};r.readAsText(file);}
   function handleCloseBanner(key){setDismissed(function(d){var n=Object.assign({},d);n[key]=true;return n;});}
@@ -2316,6 +2396,8 @@ alert("Importazione completata! "+imported+" sezioni importate.");}catch(err){al
     area==="am"?React.createElement(AMSection,{amData:amData,setAmData:setAmData,pushUndo:pushUndo}):null,
     area==="note"?React.createElement(NotesSection,{notesData:notesData,setNotesData:setNotesData,pushUndo:pushUndo}):null,
     area==="disc"?React.createElement(DisciplinaSection,{discData:discData,setDiscData:setDiscData,pushUndo:pushUndo}):null,
+    area==="linee"?React.createElement(ListSection,{title:"Linee Guida",items:lineeData,setItems:setLineeData}):null,
+    area==="afferm"?React.createElement(ListSection,{title:"Affermazioni",items:affermData,setItems:setAffermData}):null,
     area==="dashboard"?React.createElement(Dashboard,{data:data,onNavigate:function(a){setArea(a);}}):null,
     showSettings?React.createElement(SettingsPanel,settingsProps):null,
     hasBanners?React.createElement(BannerOverlay,bannerProps):null
