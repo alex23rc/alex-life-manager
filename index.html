@@ -56,7 +56,7 @@ const MONTHS_IT=["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio
 const ALL_TABS=[
   {k:"todo",l:"To Do"},{k:"obiettivi",l:"Top 10"},{k:"goals",l:"Obiettivi"},
   {k:"personale",l:"Personale"},{k:"lavorativa",l:"Lavoro"},{k:"artistica",l:"Arte"},
-  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"am",l:"A.M."},{k:"note",l:"Note"},{k:"disc",l:"Disciplina"},{k:"linee",l:"Linee Guida"},{k:"afferm",l:"Affermazioni"},{k:"dashboard",l:"Dashboard"},
+  {k:"calendar",l:"Calendario"},{k:"frasi",l:"Frasi"},{k:"timer",l:"Timer"},{k:"ai",l:"A.I."},{k:"am",l:"A.M."},{k:"note",l:"Note"},{k:"disc",l:"Disciplina"},{k:"streak",l:"Stop & Go"},{k:"linee",l:"Linee Guida"},{k:"afferm",l:"Affermazioni"},{k:"dashboard",l:"Dashboard"},
 ];
 
 const THEMES={
@@ -92,7 +92,7 @@ const INIT_SETTINGS={
     artistica:{visible:true,home:false,label:"Arte",headerTheme:null,bodyTheme:null},
     calendar:{visible:true,home:false,label:"Calendario",headerTheme:null,bodyTheme:null},
     frasi:{visible:true,home:false,label:"Frasi",headerTheme:null,bodyTheme:null},
-    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},am:{visible:true,home:false,label:"A.M.",headerTheme:null,bodyTheme:null},note:{visible:true,home:false,label:"Note",headerTheme:null,bodyTheme:null},disc:{visible:true,home:false,label:"Disciplina",headerTheme:null,bodyTheme:null},linee:{visible:true,home:false,label:"Linee Guida",headerTheme:null,bodyTheme:null},afferm:{visible:true,home:false,label:"Affermazioni",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
+    timer:{visible:true,home:false,label:"Timer",headerTheme:null,bodyTheme:null},ai:{visible:true,home:false,label:"A.I.",headerTheme:null,bodyTheme:null},am:{visible:true,home:false,label:"A.M.",headerTheme:null,bodyTheme:null},note:{visible:true,home:false,label:"Note",headerTheme:null,bodyTheme:null},disc:{visible:true,home:false,label:"Disciplina",headerTheme:null,bodyTheme:null},streak:{visible:true,home:false,label:"Stop & Go",headerTheme:null,bodyTheme:null},linee:{visible:true,home:false,label:"Linee Guida",headerTheme:null,bodyTheme:null},afferm:{visible:true,home:false,label:"Affermazioni",headerTheme:null,bodyTheme:null},dashboard:{visible:true,home:false,label:"Dashboard",headerTheme:null,bodyTheme:null},
   },
   theme:"light",userName:"Alex",weekStart:"monday",
 };
@@ -234,6 +234,7 @@ const INIT_PHRASES=[
 ];
 
 const INIT_EVENTS=[];
+const INIT_STREAK={"dipendenze":[],"abitudini":[]};
 const INIT_DISC={"cats":[],"habits":[],"logs":{},"snapshots":[],"pendingSnapshot":false};
 const INIT_NOTES={"cats":[],"version":1};
 const INIT_AM={"al":[],"ai":[],"pas":[],"storico":[]};
@@ -2023,6 +2024,152 @@ function ListSection(props){
     }));
 }
 
+
+function StreakSection(props){
+  var streakData=props.streakData;var setStreakData=props.setStreakData;
+  var dip=streakData.dipendenze||[];var abi=streakData.abitudini||[];
+  var _sm=useState(null);var modal=_sm[0];var setModal=_sm[1];
+  var _sf=useState(null);var failModal=_sf[0];var setFailModal=_sf[1];
+  var _sc=useState(null);var celebModal=_sc[0];var setCelebModal=_sc[1];
+  var _sn=useState(null);var newModal=_sn[0];var setNewModal=_sn[1];
+  var _se=useState(null);var editModal=_se[0];var setEditModal=_se[1];
+  var MILESTONES=[
+    {days:1,label:"1 giorno"},{days:3,label:"3 giorni"},{days:7,label:"1 settimana"},
+    {days:10,label:"10 giorni"},{days:14,label:"2 settimane"},{days:21,label:"21 giorni"},
+    {days:30,label:"1 mese"},{days:60,label:"2 mesi"},{days:90,label:"3 mesi"},
+    {days:100,label:"100 giorni"},{days:180,label:"6 mesi"},{days:200,label:"200 giorni"},
+    {days:270,label:"9 mesi"},{days:300,label:"300 giorni"},{days:365,label:"1 anno"},
+    {days:500,label:"500 giorni"},{days:730,label:"2 anni"},{days:1000,label:"1000 giorni"},
+    {days:1095,label:"3 anni"}
+  ];
+  function todayStr(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function getDays(startDate){if(!startDate)return 0;var start=new Date(startDate+"T00:00:00");var now=new Date();now.setHours(0,0,0,0);return Math.max(0,Math.floor((now-start)/(1000*60*60*24)));}
+  function getNextMilestone(days){for(var i=0;i<MILESTONES.length;i++){if(MILESTONES[i].days>days)return MILESTONES[i];}return null;}
+  function getCurrentMilestone(days){var cur=null;for(var i=0;i<MILESTONES.length;i++){if(MILESTONES[i].days<=days)cur=MILESTONES[i];}return cur;}
+  var MSG_DIP={1:"\u2b50 Un giorno! Il viaggio \xe8 iniziato. Ogni grande percorso inizia con un singolo passo.",3:"\ud83d\udcaa 3 giorni! Il pi\xf9 difficile \xe8 alle spalle. La mente comincia ad adattarsi.",7:"\ud83c\udf89 UNA SETTIMANA! I primi effetti positivi si fanno sentire.",10:"\ud83d\udd25 10 giorni! Stai costruendo una nuova identit\xe0.",14:"\u2728 Due settimane! La neuroplasticit\xe0 sta lavorando per te.",21:"\ud83e\udde0 21 giorni! I circuiti neurali cominciano a riconfigurarsi.",30:"\ud83c\udfc5 UN MESE! Incredibile. Hai dimostrato a te stesso che \xe8 possibile.",60:"\ud83d\ude80 Due mesi! La dipendenza perde forza ogni giorno.",90:"\ud83c\udf0d TRE MESI! La tua volont\xe0 \xe8 pi\xf9 forte di qualsiasi dipendenza.",100:"\ud83d\udcaf 100 GIORNI! Un risultato che pochissimi raggiungono.",180:"\ud83c\udfc6 SEI MESI! Met\xe0 anno. Hai riscritto la tua storia.",200:"\ud83d\udd25 200 giorni! La persona che eri sembra lontanissima.",270:"\ud83c\udf1f Nove mesi! Come una rinascita.",300:"\ud83d\udcaa 300 giorni! Quasi un anno.",365:"\ud83c\udf8a UN ANNO INTERO! Hai vinto. La tua vita \xe8 cambiata per sempre.",500:"\ud83d\ude80 500 giorni! Sei un esempio per tutti.",730:"\ud83c\udfc6 DUE ANNI! Hai dimostrato che la forza di volont\xe0 non ha limiti.",1000:"\ud83d\udcaf 1000 GIORNI! Mille giorni di libert\xe0.",1095:"\ud83c\udfc6 TRE ANNI! Sei una persona completamente diversa."};
+  var MSG_ABI={1:"\ud83c\udf31 Il primo passo \xe8 fatto! Ogni esperto era una volta un principiante.",3:"\ud83d\udcaa 3 giorni di fila! Il ritmo si sta formando.",7:"\ud83c\udf89 UNA SETTIMANA! Il cervello sta iniziando a registrare questa come abitudine.",10:"\ud83d\udd25 10 giorni! Il rinforzo neurale \xe8 gi\xe0 in corso.",14:"\u2728 Due settimane consecutive! Stai costruendo qualcosa di solido.",21:"\ud83e\udde0 21 giorni! Un mese \xe8 vicino e il cambiamento \xe8 reale.",30:"\ud83c\udfc5 UN MESE! La scienza dice che per molte persone bastano 30 giorni.",60:"\ud83d\ude80 Due mesi! Per le abitudini complesse questo \xe8 il punto di svolta.",90:"\ud83c\udf0d TRE MESI! 90 giorni solidificano qualsiasi abitudine.",100:"\ud83d\udcaf 100 GIORNI! L\u2019abitudine \xe8 tua.",180:"\ud83c\udfc6 SEI MESI! Questa abitudine fa ormai parte della tua identit\xe0.",200:"\ud83d\udd25 200 giorni! Quasi automatico.",270:"\ud83c\udf1f Nove mesi! Con pazienza e amore per se stessi.",300:"\ud83d\udcaa 300 giorni! La meta di un anno \xe8 a portata di mano.",365:"\ud83c\udf8a UN ANNO! Hai trasformato questa azione in parte fondamentale di te.",500:"\ud83d\ude80 500 giorni di costanza.",730:"\ud83c\udfc6 DUE ANNI! L\u2019abitudine \xe8 automatica.",1000:"\ud83d\udcaf 1000 GIORNI! Leggendario.",1095:"\ud83c\udfc6 TRE ANNI! Questa abitudine \xe8 chi sei."};
+  function getMessage(days,name,isDip){
+    var msgs=isDip?MSG_DIP:MSG_ABI;
+    var ms=getCurrentMilestone(days);var next=getNextMilestone(days);
+    var nextStr=next?" Prossimo traguardo: "+next.label+" (ancora "+(next.days-days)+" giorni).":"";
+    var base;
+    if(days>=1095){base="\ud83c\udfc6 "+(isDip?"STRAORDINARIO":"LEGGENDARIO")+"! "+name+" - 3 anni! Non fermarti mai.";}
+    else if(!ms){base=(isDip?"\ud83d\udcaa":"\ud83c\udf31")+" Giorno "+days+" - "+name+". Stai costruendo qualcosa di importante.";}
+    else{base=msgs[ms.days]||((isDip?"\ud83d\udcaa":"\ud83c\udf31")+" Giorno "+days+"!");}
+    return base+nextStr;
+  }
+  function getFailMsg(days){
+    if(days<7)return "\ud83d\udc99 Avevi fatto "+days+" "+(days===1?"giorno":"giorni")+" - non sono andati perduti. Ricomincia adesso, piu' forte di prima.";
+    if(days<30)return "\ud83d\udc99 "+days+" giorni non sono pochi! Ripartire non significa fallire.";
+    if(days<100)return "\ud83d\udc99 "+days+" giorni straordinari. Una battuta d'arresto non cancella tutto cio' che hai costruito.";
+    return "\ud83d\udc99 "+days+" giorni! Hai dimostrato di saper resistere a lungo. Questa e' solo una pausa, non la fine.";
+  }
+  function upd(fn){setStreakData(function(d){var n=JSON.parse(JSON.stringify(d));fn(n);return n;});}
+  function newId(){return Math.random().toString(36).slice(2,9);}
+  React.useEffect(function(){
+    var today=todayStr();
+    var allItems=(streakData.dipendenze||[]).map(function(x){return {item:x,isDip:true};}).concat((streakData.abitudini||[]).map(function(x){return {item:x,isDip:false};}));
+    for(var i=0;i<allItems.length;i++){
+      var obj=allItems[i];var item=obj.item;var isDip=obj.isDip;
+      var days=getDays(item.startDate);var ms=getCurrentMilestone(days);
+      if(ms&&item.lastMilestoneShown!==ms.days&&item.lastMilestoneDay!==today&&days>0){setCelebModal({item:item,days:days,isDip:isDip});break;}
+    }
+  },[]);
+  function markMilestoneSeen(item,days,isDip){
+    var ms=getCurrentMilestone(days);if(!ms)return;
+    upd(function(d){var arr=isDip?d.dipendenze:d.abitudini;var it=arr.find(function(x){return x.id===item.id;});if(it){it.lastMilestoneShown=ms.days;it.lastMilestoneDay=todayStr();}});
+  }
+  function handleCelebClose(){if(celebModal)markMilestoneSeen(celebModal.item,celebModal.days,celebModal.isDip);setCelebModal(null);}
+  function handleCelebButton(item,isDip){var days=getDays(item.startDate);setCelebModal({item:item,days:days,isDip:isDip});}
+  function handleFail(item,isDip){var days=getDays(item.startDate);setFailModal({item:item,days:days,isDip:isDip});}
+  function confirmFail(){
+    var item=failModal.item;var days=failModal.days;var isDip=failModal.isDip;
+    upd(function(d){var arr=isDip?d.dipendenze:d.abitudini;var it=arr.find(function(x){return x.id===item.id;});if(it){if(!it.history)it.history=[];it.history.unshift({startDate:item.startDate,endDate:todayStr(),days:days});it.startDate=todayStr();it.lastMilestoneShown=null;it.lastMilestoneDay=null;}});
+    setFailModal(null);
+  }
+  function addItem(tipo){
+    var name=newModal&&newModal.name?newModal.name.trim():"";if(!name)return;
+    var item={id:newId(),name:name,emoji:newModal.emoji||"",startDate:todayStr(),lastMilestoneShown:null,lastMilestoneDay:null,history:[]};
+    upd(function(d){if(tipo==="dip")d.dipendenze.push(item);else d.abitudini.push(item);});
+    setNewModal(null);
+  }
+  function saveEdit(){
+    if(!editModal||!editModal.name.trim())return;
+    upd(function(d){var arr=editModal.isDip?d.dipendenze:d.abitudini;var it=arr.find(function(x){return x.id===editModal.id;});if(it){it.name=editModal.name.trim();it.emoji=editModal.emoji;}});
+    setEditModal(null);
+  }
+  function deleteItem(id,isDip,name,days,histLen){
+    var msg="Stai per eliminare \""+name+"\" e tutto il suo storico.\n\nATTENZIONE: perderai "+days+" giorni attuali"+(histLen>0?" e "+histLen+" tentativo/i precedente/i":"")+". L'azione e' IRREVERSIBILE.";
+    if(!window.confirm(msg))return;
+    upd(function(d){if(isDip)d.dipendenze=d.dipendenze.filter(function(x){return x.id!==id;});else d.abitudini=d.abitudini.filter(function(x){return x.id!==id;});});
+  }
+  function renderCard(item,isDip){
+    var days=getDays(item.startDate);var next=getNextMilestone(days);var ms=getCurrentMilestone(days);
+    var color=isDip?"#e53e3e":"#38a169";var histLen=(item.history||[]).length;
+    var isMilestoneToday=ms&&item.lastMilestoneDay===todayStr();
+    return React.createElement("div",{key:item.id,style:{background:"#fff",borderRadius:14,padding:16,marginBottom:12,boxShadow:"0 2px 10px rgba(0,0,0,0.07)",border:"2px solid "+(isMilestoneToday?color:"#e2e8f0")}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:10}},
+        React.createElement("span",{style:{fontSize:24}},item.emoji||(isDip?"\ud83d\udeab":"\u2b50")),
+        React.createElement("div",{style:{flex:1}},React.createElement("div",{style:{fontSize:15,fontWeight:700,color:"#2d3748"}},item.name),React.createElement("div",{style:{fontSize:12,color:"#718096"}},"Dal "+item.startDate)),
+        React.createElement("div",{style:{textAlign:"right"}},React.createElement("div",{style:{fontSize:28,fontWeight:900,color:color}},days),React.createElement("div",{style:{fontSize:11,color:"#718096"}},"giorni"))),
+      next&&React.createElement("div",{style:{background:isDip?"#fff5f5":"#f0fff4",borderRadius:8,padding:"6px 10px",marginBottom:10,fontSize:12,color:isDip?"#c53030":"#276749"}},
+        "Prossima tappa: "+next.label+" (ancora "+(next.days-days)+" giorni)"),
+      React.createElement("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},
+        React.createElement("button",{onClick:function(){handleCelebButton(item,isDip);},style:{flex:1,minWidth:120,background:color,color:"#fff",border:"none",borderRadius:10,padding:"10px",cursor:"pointer",fontWeight:700,fontSize:13}},"\ud83d\udcaa Incoraggiami!"),
+        React.createElement("button",{onClick:function(){setModal(modal===item.id?null:item.id);},style:{background:"#f7fafc",border:"1px solid #e2e8f0",color:"#718096",borderRadius:10,padding:"8px 10px",cursor:"pointer",fontSize:12}},"Storico"+(histLen>0?" ("+histLen+")":"")),
+        React.createElement("button",{onClick:function(){setEditModal({id:item.id,isDip:isDip,name:item.name,emoji:item.emoji||""});},style:{background:"#ebf4ff",border:"1px solid #bee3f8",color:"#2b6cb0",borderRadius:10,padding:"8px 10px",cursor:"pointer",fontSize:12}},"\u270e Modifica"),
+        React.createElement("button",{onClick:function(){deleteItem(item.id,isDip,item.name,days,histLen);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",borderRadius:10,padding:"8px 10px",cursor:"pointer",fontSize:12}},"\ud83d\uddd1"),
+        React.createElement("button",{onClick:function(){handleFail(item,isDip);},style:{background:"#fff5f5",border:"1px solid #fed7d7",color:"#e53e3e",borderRadius:10,padding:"8px 10px",cursor:"pointer",fontSize:12,fontWeight:600}},(isDip?"Ho ceduto":"Ho saltato"))),
+      modal===item.id&&React.createElement("div",{style:{marginTop:12,borderTop:"1px solid #f0f0f0",paddingTop:10}},
+        React.createElement("div",{style:{fontSize:13,fontWeight:700,color:"#4a5568",marginBottom:6}},"Storico tentativi"),
+        (!item.history||!item.history.length)?React.createElement("div",{style:{fontSize:12,color:"#a0aec0"}},"Nessun tentativo precedente - stai andando alla grande!"):
+        item.history.map(function(h,i){return React.createElement("div",{key:i,style:{fontSize:12,color:"#718096",padding:"3px 0",borderBottom:"1px solid #f7fafc"}},h.startDate+" > "+h.endDate+": "+h.days+" giorni");}),
+        React.createElement("button",{onClick:function(){setModal(null);},style:{marginTop:8,background:"#e2e8f0",border:"none",borderRadius:8,padding:"4px 10px",cursor:"pointer",fontSize:12}},"Chiudi")));
+  }
+  return React.createElement("div",{style:{maxWidth:800,margin:"0 auto",padding:"20px 16px"}},
+    celebModal&&React.createElement("div",{style:{position:"fixed",inset:0,background:"linear-gradient(135deg,"+(celebModal.isDip?"#e53e3e":"#38a169")+",#2d3748)",zIndex:9000,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,textAlign:"center"}},
+      React.createElement("div",{style:{fontSize:64,marginBottom:16}},celebModal.isDip?"\ud83d\udeab":"\u2b50"),
+      React.createElement("div",{style:{fontSize:48,fontWeight:900,color:"#fff",marginBottom:8}},celebModal.days+" giorni"),
+      React.createElement("div",{style:{fontSize:20,fontWeight:700,color:"rgba(255,255,255,0.9)",marginBottom:24}},celebModal.item.name),
+      React.createElement("div",{style:{fontSize:17,color:"#fff",lineHeight:1.7,maxWidth:520,marginBottom:36}},getMessage(celebModal.days,celebModal.item.name,celebModal.isDip)),
+      React.createElement("button",{onClick:handleCelebClose,style:{background:"rgba(255,255,255,0.2)",border:"2px solid #fff",color:"#fff",borderRadius:14,padding:"14px 36px",cursor:"pointer",fontWeight:700,fontSize:16}},"Continua cosi'! >")),
+    failModal&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      React.createElement("div",{style:{background:"#fff",borderRadius:20,padding:28,maxWidth:400,width:"100%",textAlign:"center"}},
+        React.createElement("div",{style:{fontSize:48,marginBottom:12}},"\ud83d\udc99"),
+        React.createElement("div",{style:{fontSize:18,fontWeight:800,color:"#2d3748",marginBottom:8}},"Non mollare"),
+        React.createElement("div",{style:{fontSize:15,color:"#4a5568",lineHeight:1.7,marginBottom:20}},getFailMsg(failModal.days)),
+        React.createElement("div",{style:{display:"flex",gap:10}},
+          React.createElement("button",{onClick:function(){setFailModal(null);},style:{flex:1,background:"#e2e8f0",border:"none",borderRadius:10,padding:"12px",cursor:"pointer",fontWeight:600}},"Annulla"),
+          React.createElement("button",{onClick:confirmFail,style:{flex:1,background:"#e53e3e",color:"#fff",border:"none",borderRadius:10,padding:"12px",cursor:"pointer",fontWeight:700}},"Riparti da oggi")))),
+    editModal&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:7500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,maxWidth:380,width:"100%"}},
+        React.createElement("h3",{style:{margin:"0 0 16px",color:"#2d3748"}},"Modifica "+(editModal.isDip?"dipendenza":"abitudine")),
+        React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:12,fontWeight:700,color:"#718096",display:"block",marginBottom:4}},"NOME"),React.createElement("input",{autoFocus:true,value:editModal.name,onChange:function(e){setEditModal(function(m){return Object.assign({},m,{name:e.target.value});});},onKeyDown:function(e){if(e.key==="Enter")saveEdit();if(e.key==="Escape")setEditModal(null);},style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",fontSize:14}})),
+        React.createElement("div",{style:{marginBottom:20}},React.createElement("label",{style:{fontSize:12,fontWeight:700,color:"#718096",display:"block",marginBottom:4}},"EMOJI"),React.createElement("input",{value:editModal.emoji||"",onChange:function(e){setEditModal(function(m){return Object.assign({},m,{emoji:e.target.value});});},style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",fontSize:18}})),
+        React.createElement("div",{style:{display:"flex",gap:8}},
+          React.createElement("button",{onClick:function(){setEditModal(null);},style:{flex:1,background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:600}},"Annulla"),
+          React.createElement("button",{onClick:saveEdit,style:{flex:1,background:"#667eea",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700}},"Salva")))),
+    newModal&&React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:7000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+      React.createElement("div",{style:{background:"#fff",borderRadius:16,padding:24,maxWidth:380,width:"100%"}},
+        React.createElement("h3",{style:{margin:"0 0 16px",color:"#2d3748"}},newModal.tipo==="dip"?"Nuova dipendenza da stop":"Nuova abitudine da consolidare"),
+        React.createElement("div",{style:{marginBottom:12}},React.createElement("label",{style:{fontSize:12,fontWeight:700,color:"#718096",display:"block",marginBottom:4}},"NOME"),React.createElement("input",{autoFocus:true,value:newModal.name||"",onChange:function(e){setNewModal(function(m){return Object.assign({},m,{name:e.target.value});});},placeholder:newModal.tipo==="dip"?"Es. Fumo, Alcol, Social...":"Es. Meditazione, Lettura...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",fontSize:14}})),
+        React.createElement("div",{style:{marginBottom:20}},React.createElement("label",{style:{fontSize:12,fontWeight:700,color:"#718096",display:"block",marginBottom:4}},"EMOJI (opzionale)"),React.createElement("input",{value:newModal.emoji||"",onChange:function(e){setNewModal(function(m){return Object.assign({},m,{emoji:e.target.value});});},placeholder:"Es. un emoji...",style:{width:"100%",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",fontSize:18}})),
+        React.createElement("div",{style:{display:"flex",gap:8}},
+          React.createElement("button",{onClick:function(){setNewModal(null);},style:{flex:1,background:"#e2e8f0",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:600}},"Annulla"),
+          React.createElement("button",{onClick:function(){addItem(newModal.tipo);},style:{flex:1,background:newModal.tipo==="dip"?"#e53e3e":"#38a169",color:"#fff",border:"none",borderRadius:8,padding:"10px",cursor:"pointer",fontWeight:700}},"Inizia oggi!")))),
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}},
+      React.createElement("h2",{style:{fontSize:22,fontWeight:800,color:"#2d3748",margin:0}},"Stop & Go"),
+      React.createElement("div",{style:{display:"flex",gap:8}},
+        React.createElement("button",{onClick:function(){setNewModal({tipo:"dip",name:"",emoji:""});},style:{background:"#e53e3e",color:"#fff",border:"none",borderRadius:10,padding:"8px 14px",cursor:"pointer",fontWeight:700,fontSize:13}},"\ud83d\udeab + Stop"),
+        React.createElement("button",{onClick:function(){setNewModal({tipo:"abi",name:"",emoji:""});},style:{background:"#38a169",color:"#fff",border:"none",borderRadius:10,padding:"8px 14px",cursor:"pointer",fontWeight:700,fontSize:13}},"\u2b50 + Abitudine"))),
+    React.createElement("div",{style:{marginBottom:28}},
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:14}},React.createElement("span",{style:{fontSize:20}},"\ud83d\udeab"),React.createElement("h3",{style:{margin:0,fontSize:17,fontWeight:800,color:"#2d3748"}},"Dipendenze in stop"),React.createElement("span",{style:{background:"#fff5f5",color:"#e53e3e",borderRadius:20,padding:"2px 10px",fontSize:12,fontWeight:700}},dip.length)),
+      dip.length===0?React.createElement("div",{style:{textAlign:"center",color:"#a0aec0",padding:30,fontSize:14,background:"#fff",borderRadius:14}},"Nessuna dipendenza da tracciare ancora."):dip.map(function(item){return renderCard(item,true);})),
+    React.createElement("div",null,
+      React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:14}},React.createElement("span",{style:{fontSize:20}},"\u2b50"),React.createElement("h3",{style:{margin:0,fontSize:17,fontWeight:800,color:"#2d3748"}},"Abitudini in consolidamento"),React.createElement("span",{style:{background:"#f0fff4",color:"#38a169",borderRadius:20,padding:"2px 10px",fontSize:12,fontWeight:700}},abi.length)),
+      abi.length===0?React.createElement("div",{style:{textAlign:"center",color:"#a0aec0",padding:30,fontSize:14,background:"#fff",borderRadius:14}},"Nessuna abitudine da consolidare ancora."):abi.map(function(item){return renderCard(item,false);})));
+}
+
 function Top10(props){
   var objectives=props.objectives;var setObjectives=props.setObjectives;
   var _s=useState(null);var editing=_s[0];var setEditing=_s[1];
@@ -2185,7 +2332,7 @@ function SettingsPanel(props){
   var _s=useState("main");var sub=_s[0];var setSub=_s[1];
   var _s2=useState(false);var confirmReset=_s2[0];var setConfirmReset=_s2[1];
   var _s3=useState(null);var pendingTheme=_s3[0];var setPendingTheme=_s3[1];
-  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","am","note","disc","linee","afferm","dashboard"];
+  var tabKeys=["todo","obiettivi","goals","personale","lavorativa","artistica","calendar","frasi","timer","ai","am","note","disc","streak","linee","afferm","dashboard"];
   function handleGlobalTheme(theme){var has=Object.values(settings.tabs).some(function(t){return t.headerTheme||t.bodyTheme;});if(has){setPendingTheme(theme);setConfirmReset(true);}else setSettings(function(s){return Object.assign({},s,{theme:theme});});}
   function confirmResetFn(){var tabs={};Object.keys(settings.tabs).forEach(function(k){tabs[k]=Object.assign({},settings.tabs[k],{headerTheme:null,bodyTheme:null});});setSettings(function(s){return Object.assign({},s,{theme:pendingTheme,tabs:tabs});});setConfirmReset(false);setPendingTheme(null);}
   function keepFn(){setSettings(function(s){return Object.assign({},s,{theme:pendingTheme});});setConfirmReset(false);setPendingTheme(null);}
@@ -2225,6 +2372,7 @@ function App(){
   var _s_am=useState(INIT_AM);var amData=_s_am[0];var setAmData=_s_am[1];
   var _s_notes=useState(INIT_NOTES);var notesData=_s_notes[0];var setNotesData=_s_notes[1];
   var _s_disc=useState(INIT_DISC);var discData=_s_disc[0];var setDiscData=_s_disc[1];
+  var _s_streak=useState(INIT_STREAK);var streakData=_s_streak[0];var setStreakData=_s_streak[1];
   var _s_linee=useState([]);var lineeData=_s_linee[0];var setLineeData=_s_linee[1];
   var _s_afferm=useState([]);var affermData=_s_afferm[0];var setAffermData=_s_afferm[1];
   var _s18=useState(false);var saveReady=_s18[0];var setSaveReady=_s18[1];
@@ -2233,7 +2381,7 @@ function App(){
   var _s16=useState(null);var birthdayImportApp=_s16[0];var setBirthdayImportApp=_s16[1];
 
   useEffect(function(){
-    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI),fbLoad("alm_am",INIT_AM),fbLoad("alm_notes",INIT_NOTES),fbLoad("alm_disc",INIT_DISC),fbLoad("alm_linee",[]),fbLoad("alm_afferm",[])]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
+    function doLoad(){if(window._alm_loading)return;window._alm_loading=true;Promise.all([fbLoad("alm_data",INIT_DATA),fbLoad("alm_objectives",INIT_OBJECTIVES),fbLoad("alm_goals",INIT_GOALS),fbLoad("alm_todos",INIT_TODO),fbLoad("alm_phrases",INIT_PHRASES),fbLoad("alm_events",INIT_EVENTS),fbLoad("alm_settings",INIT_SETTINGS),fbLoad("alm_dismissed",{}),fbLoad("alm_taborder",null),fbLoad("alm_ai",INIT_AI),fbLoad("alm_am",INIT_AM),fbLoad("alm_notes",INIT_NOTES),fbLoad("alm_disc",INIT_DISC),fbLoad("alm_streak",INIT_STREAK),fbLoad("alm_linee",[]),fbLoad("alm_afferm",[])]).then(function(res){function hasData(v){return Array.isArray(v)?v.length>0:(v&&typeof v==="object"&&Object.keys(v).length>0);}if(hasData(res[0]))setData(res[0]);if(hasData(res[1]))setObjectives(res[1]);if(hasData(res[2])){
           var g2=JSON.parse(JSON.stringify(res[2]));
           ["personale","lavorativa","artistica"].forEach(function(area){
             if(g2[area]){["breve","medio","lungo"].forEach(function(term){
@@ -2249,7 +2397,8 @@ function App(){
           if(res[10]&&(res[10].al||res[10].ai||res[10].pas))setAmData(res[10]);
           if(res[11]&&res[11].cats)setNotesData(res[11]);
           if(res[12]&&res[12].habits)setDiscData(res[12]);
-          if(res[13]&&Array.isArray(res[13]))setLineeData(res[13]);
+          if(res[13]&&res[13].dipendenze)setStreakData(res[13]);
+          if(res[14]&&Array.isArray(res[14]))setLineeData(res[14]);
           if(res[14]&&Array.isArray(res[14]))setAffermData(res[14]);var st=hasData(res[6])?res[6]:INIT_SETTINGS;var homeTab=Object.entries(st.tabs||{}).find(function(e){return e[1].home;});window._alm_loaded=true;setArea(homeTab?homeTab[0]:"todo");
         if(window._fbLoadError){setLoadError(true);setLoaded(true);}
         else{setLoaded(true);setTimeout(function(){if(!window._fbLoadError){window._alm_ready=true;setSaveReady(true);}},2000);}});}
@@ -2273,6 +2422,7 @@ function App(){
   useEffect(function(){if(canSave()&&amData)fbSave("alm_am",amData);},[amData,saveReady]);
   useEffect(function(){if(canSave()&&notesData)fbSave("alm_notes",notesData);},[notesData,saveReady]);
   useEffect(function(){if(canSave()&&discData)fbSave("alm_disc",discData);},[discData,saveReady]);
+  useEffect(function(){if(canSave()&&streakData)fbSave("alm_streak",streakData);},[streakData,saveReady]);
   useEffect(function(){if(canSave())fbSave("alm_linee",lineeData);},[lineeData,saveReady]);
   useEffect(function(){if(canSave())fbSave("alm_afferm",affermData);},[affermData,saveReady]);
 
@@ -2285,7 +2435,7 @@ function App(){
   var visibleBanners=bannerIgnored?[]:banners;
 
   function pushUndo(label){
-    var snap={label:label||"azione",todos:JSON.parse(JSON.stringify(todos||[])),goals:JSON.parse(JSON.stringify(goals||{})),data:JSON.parse(JSON.stringify(data||{})),objectives:JSON.parse(JSON.stringify(objectives||[])),events:JSON.parse(JSON.stringify(events||[])),phrases:(phrases||[]).slice(),aiData:JSON.parse(JSON.stringify(aiData||{})),amData:JSON.parse(JSON.stringify(amData||{})),notesData:JSON.parse(JSON.stringify(notesData||{})),discData:JSON.parse(JSON.stringify(discData||{})),lineeData:JSON.parse(JSON.stringify(lineeData||[])),affermData:JSON.parse(JSON.stringify(affermData||[]))};
+    var snap={label:label||"azione",todos:JSON.parse(JSON.stringify(todos||[])),goals:JSON.parse(JSON.stringify(goals||{})),data:JSON.parse(JSON.stringify(data||{})),objectives:JSON.parse(JSON.stringify(objectives||[])),events:JSON.parse(JSON.stringify(events||[])),phrases:(phrases||[]).slice(),aiData:JSON.parse(JSON.stringify(aiData||{})),amData:JSON.parse(JSON.stringify(amData||{})),notesData:JSON.parse(JSON.stringify(notesData||{})),discData:JSON.parse(JSON.stringify(discData||{})),streakData:JSON.parse(JSON.stringify(streakData||{})),lineeData:JSON.parse(JSON.stringify(lineeData||[])),affermData:JSON.parse(JSON.stringify(affermData||[]))};
     setUndoHistory(function(h){return h.slice(-19).concat([snap]);});
   }
   function handleUndo(){
@@ -2302,13 +2452,14 @@ function App(){
       if(snap.amData!==undefined)setAmData(snap.amData);
       if(snap.notesData!==undefined)setNotesData(snap.notesData);
       if(snap.discData!==undefined)setDiscData(snap.discData);
+      if(snap.streakData!==undefined)setStreakData(snap.streakData);
       if(snap.lineeData!==undefined)setLineeData(snap.lineeData);
       if(snap.affermData!==undefined)setAffermData(snap.affermData);
       return h.slice(0,-1);
     });
   }
   function handleExport(){
-    var all={data:data,objectives:objectives,goals:goals,todos:todos,phrases:phrases,events:events,settings:settings,dismissed:dismissed,taborder:tabOrder,ai:aiData,am:amData,notes:notesData,disc:discData,linee:lineeData,afferm:affermData};
+    var all={data:data,objectives:objectives,goals:goals,todos:todos,phrases:phrases,events:events,settings:settings,dismissed:dismissed,taborder:tabOrder,ai:aiData,am:amData,notes:notesData,disc:discData,streak:streakData,linee:lineeData,afferm:affermData};
     var blob=new Blob([JSON.stringify(all,null,2)],{type:"application/json"});var url=URL.createObjectURL(blob);var a=document.createElement("a");a.href=url;a.download="alex-backup.json";a.click();
   }
   function handleImport(e){var file=e.target.files[0];if(!file)return;
@@ -2334,6 +2485,8 @@ if(hasVal(imp_ai)){setAiData(imp_ai);imported++;}
 if(hasVal(imp_am)){setAmData(imp_am);imported++;}
 if(hasVal(imp_notes)){setNotesData(imp_notes);imported++;}
 if(hasVal(imp_disc)){setDiscData(imp_disc);imported++;}
+var imp_streak=get("streak","alm_streak");
+if(imp_streak&&imp_streak.dipendenze){setStreakData(imp_streak);imported++;}
 var imp_afferm=get("afferm","alm_afferm");
 if(imp_afferm&&Array.isArray(imp_afferm)){setAffermData(imp_afferm);imported++;}
 var imp_linee=get("linee","alm_linee");
@@ -2396,6 +2549,7 @@ alert("Importazione completata! "+imported+" sezioni importate.");}catch(err){al
     area==="am"?React.createElement(AMSection,{amData:amData,setAmData:setAmData,pushUndo:pushUndo}):null,
     area==="note"?React.createElement(NotesSection,{notesData:notesData,setNotesData:setNotesData,pushUndo:pushUndo}):null,
     area==="disc"?React.createElement(DisciplinaSection,{discData:discData,setDiscData:setDiscData,pushUndo:pushUndo}):null,
+    area==="streak"?React.createElement(StreakSection,{streakData:streakData,setStreakData:setStreakData}):null,
     area==="linee"?React.createElement(ListSection,{title:"Linee Guida",items:lineeData,setItems:setLineeData}):null,
     area==="afferm"?React.createElement(ListSection,{title:"Affermazioni",items:affermData,setItems:setAffermData}):null,
     area==="dashboard"?React.createElement(Dashboard,{data:data,onNavigate:function(a){setArea(a);}}):null,
